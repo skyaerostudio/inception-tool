@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Folder, 
   Plus, 
@@ -8,7 +8,13 @@ import {
   CheckCircle2, 
   AlertCircle, 
   HardDrive, 
-  Loader2 
+  Loader2,
+  ChevronDown,
+  Check,
+  Settings,
+  Building2,
+  Users,
+  Filter
 } from 'lucide-react';
 
 export const ProjectSelector = ({
@@ -19,27 +25,68 @@ export const ProjectSelector = ({
   duplicateProject,
   deleteProject,
   syncStatus,
-  isCloud
+  isCloud,
+  divisions,
+  squads,
+  onOpenOrgManager
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [newDivisionId, setNewDivisionId] = useState('');
+  const [newSquadId, setNewSquadId] = useState('');
+  const [filterDivisionId, setFilterDivisionId] = useState('');
+  const [filterSquadId, setFilterSquadId] = useState('');
+  const dropdownRef = useRef(null);
+
+  const activeProject = projectsList.find(p => p.id === currentProjectId) || projectsList[0];
+
+  const getDivisionName = (divId) => {
+    const div = divisions.find(d => d.id === divId);
+    return div ? div.name : null;
+  };
+
+  const getSquadName = (sqId) => {
+    const sq = squads.find(s => s.id === sqId);
+    return sq ? sq.name : null;
+  };
+
+  // Filter projects
+  const filteredProjects = projectsList.filter(p => {
+    if (filterDivisionId && p.division_id !== filterDivisionId) return false;
+    if (filterSquadId && p.squad_id !== filterSquadId) return false;
+    return true;
+  });
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleCreateSubmit = (e) => {
     e.preventDefault();
-    if (newProjectName.trim()) {
-      createNewProject(newProjectName.trim());
+    if (newProjectName.trim() && newDivisionId && newSquadId) {
+      createNewProject(newProjectName.trim(), newDivisionId, newSquadId);
       setNewProjectName('');
+      setNewDivisionId('');
+      setNewSquadId('');
       setIsCreating(false);
     }
   };
 
   const handleDelete = () => {
-    const activeProject = projectsList.find(p => p.id === currentProjectId);
     const projName = activeProject ? activeProject.name : 'this project';
     if (window.confirm(`Are you sure you want to delete "${projName}"?`)) {
       deleteProject(currentProjectId);
     }
   };
+
+  const hasActiveFilters = filterDivisionId || filterSquadId;
 
   const renderSyncBadge = () => {
     if (!isCloud) {
@@ -85,20 +132,108 @@ export const ProjectSelector = ({
 
   return (
     <div className="project-selector-container">
+      {/* Filter Bar */}
+      {(divisions.length > 0 || squads.length > 0) && (
+        <div className="filter-bar">
+          <Filter size={14} className="filter-bar-icon" />
+          
+          {divisions.length > 0 && (
+            <div className="filter-group">
+              <Building2 size={14} />
+              <select 
+                value={filterDivisionId} 
+                onChange={(e) => setFilterDivisionId(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Divisions</option>
+                {divisions.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {squads.length > 0 && (
+            <div className="filter-group">
+              <Users size={14} />
+              <select 
+                value={filterSquadId} 
+                onChange={(e) => setFilterSquadId(e.target.value)}
+                className="filter-select"
+              >
+                <option value="">All Squads</option>
+                {squads.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {hasActiveFilters && (
+            <button 
+              type="button" 
+              className="filter-clear-btn"
+              onClick={() => { setFilterDivisionId(''); setFilterSquadId(''); }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="project-selector-main">
-        <div className="project-dropdown-wrapper">
-          <Folder size={18} className="folder-icon" />
-          <select
-            value={currentProjectId || ''}
-            onChange={(e) => selectProject(e.target.value)}
-            className="project-select"
+        <div className="custom-dropdown-container" ref={dropdownRef}>
+          <button
+            type="button"
+            className="custom-dropdown-trigger"
+            onClick={() => setIsOpen(!isOpen)}
           >
-            {projectsList.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            <Folder size={18} className="folder-icon" />
+            <div className="selected-project-info">
+              <span className="selected-project-name">
+                {activeProject ? activeProject.name : 'Select Project...'}
+              </span>
+              {activeProject && (getDivisionName(activeProject.division_id) || getSquadName(activeProject.squad_id)) && (
+                <span className="selected-project-meta">
+                  {[getDivisionName(activeProject.division_id), getSquadName(activeProject.squad_id)].filter(Boolean).join(' · ')}
+                </span>
+              )}
+            </div>
+            <ChevronDown size={16} className={`chevron-icon ${isOpen ? 'open' : ''}`} />
+          </button>
+
+          {isOpen && (
+            <div className="custom-dropdown-menu">
+              {filteredProjects.length === 0 && (
+                <div className="dropdown-empty">No projects match current filters</div>
+              )}
+              {filteredProjects.map((p) => {
+                const isSelected = p.id === currentProjectId;
+                const divName = getDivisionName(p.division_id);
+                const sqName = getSquadName(p.squad_id);
+                return (
+                  <div
+                    key={p.id}
+                    className={`custom-dropdown-item ${isSelected ? 'selected' : ''}`}
+                    onClick={() => {
+                      selectProject(p.id);
+                      setIsOpen(false);
+                    }}
+                  >
+                    <div className="dropdown-item-content">
+                      <span className="project-item-name">{p.name}</span>
+                      {(divName || sqName) && (
+                        <span className="project-item-meta">
+                          {[divName, sqName].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
+                    </div>
+                    {isSelected && <Check size={16} className="check-icon" />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         <div className="project-actions">
@@ -131,6 +266,15 @@ export const ProjectSelector = ({
           >
             <Trash2 size={16} />
           </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon"
+            onClick={onOpenOrgManager}
+            title="Manage Divisions & Squads"
+          >
+            <Settings size={16} />
+          </button>
         </div>
       </div>
 
@@ -144,7 +288,7 @@ export const ProjectSelector = ({
             <h3>Create New Project</h3>
             <form onSubmit={handleCreateSubmit}>
               <div className="form-group">
-                <label htmlFor="newProjectName">Project Name</label>
+                <label htmlFor="newProjectName">Project Name *</label>
                 <input
                   id="newProjectName"
                   type="text"
@@ -155,6 +299,44 @@ export const ProjectSelector = ({
                   required
                 />
               </div>
+              <div className="form-row-2col">
+                <div className="form-group">
+                  <label htmlFor="newDivision">Division *</label>
+                  <select
+                    id="newDivision"
+                    value={newDivisionId}
+                    onChange={(e) => setNewDivisionId(e.target.value)}
+                    required
+                    className="modal-select"
+                  >
+                    <option value="">Select Division...</option>
+                    {divisions.map(d => (
+                      <option key={d.id} value={d.id}>{d.name}</option>
+                    ))}
+                  </select>
+                  {divisions.length === 0 && (
+                    <small className="hint warning-hint">No divisions yet. Add them in Settings first.</small>
+                  )}
+                </div>
+                <div className="form-group">
+                  <label htmlFor="newSquad">Squad *</label>
+                  <select
+                    id="newSquad"
+                    value={newSquadId}
+                    onChange={(e) => setNewSquadId(e.target.value)}
+                    required
+                    className="modal-select"
+                  >
+                    <option value="">Select Squad...</option>
+                    {squads.map(s => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                  {squads.length === 0 && (
+                    <small className="hint warning-hint">No squads yet. Add them in Settings first.</small>
+                  )}
+                </div>
+              </div>
               <div className="modal-actions">
                 <button
                   type="button"
@@ -163,7 +345,11 @@ export const ProjectSelector = ({
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <button 
+                  type="submit" 
+                  className="btn btn-primary"
+                  disabled={!newProjectName.trim() || !newDivisionId || !newSquadId}
+                >
                   Create Project
                 </button>
               </div>

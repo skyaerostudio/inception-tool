@@ -1,6 +1,10 @@
 import React from 'react';
+import { Building2, Users } from 'lucide-react';
 
-export const ProjectInfo = ({ projectInfo, updateProjectInfo }) => {
+export const ProjectInfo = ({ projectInfo, updateProjectInfo, divisions, squads }) => {
+  const divisionName = divisions?.find(d => d.id === projectInfo.divisionId)?.name;
+  const squadName = squads?.find(s => s.id === projectInfo.squadId)?.name;
+
   return (
     <section className="card project-info">
       <h2>Project Information</h2>
@@ -25,6 +29,50 @@ export const ProjectInfo = ({ projectInfo, updateProjectInfo }) => {
           />
           <small className="hint">This is the default start date for the first activity.</small>
         </div>
+        
+        <div className="form-group">
+          <label htmlFor="projectDivision">Division</label>
+          {divisions && divisions.length > 0 ? (
+            <select
+              id="projectDivision"
+              value={projectInfo.divisionId || ''}
+              onChange={(e) => updateProjectInfo('divisionId', e.target.value || null)}
+              className="modal-select"
+            >
+              <option value="">Unassigned</option>
+              {divisions.map(d => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          ) : (
+            <div className="org-badge unassigned">
+              <Building2 size={14} />
+              <span>{divisionName || 'Unassigned'}</span>
+            </div>
+          )}
+        </div>
+        <div className="form-group">
+          <label htmlFor="projectSquad">Squad</label>
+          {squads && squads.length > 0 ? (
+            <select
+              id="projectSquad"
+              value={projectInfo.squadId || ''}
+              onChange={(e) => updateProjectInfo('squadId', e.target.value || null)}
+              className="modal-select"
+            >
+              <option value="">Unassigned</option>
+              {squads.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+          ) : (
+            <div className="org-badge unassigned">
+              <Users size={14} />
+              <span>{squadName || 'Unassigned'}</span>
+            </div>
+          )}
+        </div>
+
         <div className="form-group full-width">
           <label htmlFor="projectNotes">Notes</label>
           <textarea

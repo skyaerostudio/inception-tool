@@ -1,10 +1,16 @@
 import React from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
-import { GripVertical, AlertCircle } from 'lucide-react';
+import { GripVertical, AlertCircle, Plus, Trash2 } from 'lucide-react';
 import { format, parseISO, isValid } from 'date-fns';
 import { isWorkingDay } from '../utils/dateCalculations';
 
-export const ActivityTable = ({ activities, updateActivity, reorderActivities }) => {
+export const ActivityTable = ({ 
+  activities, 
+  updateActivity, 
+  reorderActivities, 
+  addActivity, 
+  deleteActivity 
+}) => {
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     reorderActivities(result.source.index, result.destination.index);
@@ -28,7 +34,17 @@ export const ActivityTable = ({ activities, updateActivity, reorderActivities })
     <section className="card activity-table-section">
       <div className="table-header-flex">
         <h2>Activity Planning</h2>
-        <span className="hint">Drag and drop to reorder sequence</span>
+        <div className="table-header-actions">
+          <button 
+            type="button" 
+            className="btn btn-primary btn-sm"
+            onClick={() => addActivity('New Activity')}
+          >
+            <Plus size={16} />
+            <span>Add Activity</span>
+          </button>
+          <span className="hint">Drag and drop to reorder sequence</span>
+        </div>
       </div>
       
       <div className="table-responsive">
@@ -42,6 +58,7 @@ export const ActivityTable = ({ activities, updateActivity, reorderActivities })
               <th width="150">Start Date</th>
               <th width="150">End Date</th>
               <th>Remarks</th>
+              <th width="50" style={{ textAlign: 'center' }}>Action</th>
             </tr>
           </thead>
           <DragDropContext onDragEnd={handleDragEnd}>
@@ -138,6 +155,17 @@ export const ActivityTable = ({ activities, updateActivity, reorderActivities })
                                 className="activity-input"
                               />
                             </td>
+                            <td style={{ textAlign: 'center' }}>
+                              <button
+                                type="button"
+                                className="btn-icon-danger"
+                                onClick={() => deleteActivity(act.id)}
+                                title="Delete Activity"
+                                disabled={activities.length <= 1}
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
                           </tr>
                         )}
                       </Draggable>
@@ -149,7 +177,19 @@ export const ActivityTable = ({ activities, updateActivity, reorderActivities })
             </Droppable>
           </DragDropContext>
         </table>
+        
+        <div className="add-activity-footer">
+          <button 
+            type="button" 
+            className="btn btn-secondary btn-sm"
+            onClick={() => addActivity('New Activity')}
+          >
+            <Plus size={16} />
+            <span>Add Activity</span>
+          </button>
+        </div>
       </div>
     </section>
   );
 };
+

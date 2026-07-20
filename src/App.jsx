@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useProjectManager } from './hooks/useProjectManager';
+import { useOrgData } from './hooks/useOrgData';
 import { Header } from './components/Header';
 import { ProjectInfo } from './components/ProjectInfo';
 import { ActivityTable } from './components/ActivityTable';
 import { Timeline } from './components/Timeline';
 import { HolidayList } from './components/HolidayList';
 import { ActionPanel } from './components/ActionPanel';
+import { OrgManager } from './components/OrgManager';
 import './index.css';
 
 function App() {
@@ -20,6 +22,8 @@ function App() {
     updateProjectInfo,
     activities,
     updateActivity,
+    addActivity,
+    deleteActivity,
     reorderActivities,
     resetData,
     isLoading,
@@ -27,7 +31,21 @@ function App() {
     isCloud
   } = useProjectManager();
 
-  if (isLoading) {
+  const {
+    divisions,
+    squads,
+    isOrgLoading,
+    addDivision,
+    renameDivision,
+    deleteDivision,
+    addSquad,
+    renameSquad,
+    deleteSquad
+  } = useOrgData();
+
+  const [isOrgManagerOpen, setIsOrgManagerOpen] = useState(false);
+
+  if (isLoading || isOrgLoading) {
     return (
       <div className="app-loading">
         <div className="spinner"></div>
@@ -47,17 +65,24 @@ function App() {
         deleteProject={deleteProject}
         syncStatus={syncStatus}
         isCloud={isCloud}
+        divisions={divisions}
+        squads={squads}
+        onOpenOrgManager={() => setIsOrgManagerOpen(true)}
       />
       
       <main className="main-content">
         <ProjectInfo 
           projectInfo={projectInfo} 
-          updateProjectInfo={updateProjectInfo} 
+          updateProjectInfo={updateProjectInfo}
+          divisions={divisions}
+          squads={squads}
         />
         
         <ActivityTable 
           activities={activities} 
           updateActivity={updateActivity} 
+          addActivity={addActivity}
+          deleteActivity={deleteActivity}
           reorderActivities={reorderActivities} 
         />
         
@@ -73,9 +98,22 @@ function App() {
         
         <HolidayList />
       </main>
+
+      {isOrgManagerOpen && (
+        <OrgManager
+          divisions={divisions}
+          squads={squads}
+          addDivision={addDivision}
+          renameDivision={renameDivision}
+          deleteDivision={deleteDivision}
+          addSquad={addSquad}
+          renameSquad={renameSquad}
+          deleteSquad={deleteSquad}
+          onClose={() => setIsOrgManagerOpen(false)}
+        />
+      )}
     </div>
   );
 }
 
 export default App;
-

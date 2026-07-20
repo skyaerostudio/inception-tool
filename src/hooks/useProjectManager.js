@@ -7,10 +7,12 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 const LOCAL_PROJECTS_KEY = 'calendar_app_projects_list';
 const getLocalProjectKey = (id) => `calendar_app_project_${id}`;
 
-const getDefaultProjectInfo = (name = 'New Project') => ({
+const getDefaultProjectInfo = (name = 'New Project', divisionId = null, squadId = null) => ({
   name,
   startDate: format(getNextWorkingDay(new Date()), 'yyyy-MM-dd'),
-  notes: ''
+  notes: '',
+  divisionId,
+  squadId
 });
 
 const getDefaultActivities = () => {
@@ -52,7 +54,7 @@ export const useProjectManager = () => {
         try {
           const { data, error } = await supabase
             .from('projects')
-            .select('id, name, start_date, updated_at')
+            .select('id, name, start_date, updated_at, division_id, squad_id')
             .order('updated_at', { ascending: false });
 
           if (error) throw error;
@@ -125,7 +127,9 @@ export const useProjectManager = () => {
             setProjectInfo({
               name: proj.name,
               startDate: proj.start_date,
-              notes: proj.notes || ''
+              notes: proj.notes || '',
+              divisionId: proj.division_id || null,
+              squadId: proj.squad_id || null
             });
 
             if (acts && acts.length > 0) {
@@ -183,6 +187,8 @@ export const useProjectManager = () => {
               name: projectInfo.name,
               start_date: projectInfo.startDate,
               notes: projectInfo.notes,
+              division_id: projectInfo.divisionId || null,
+              squad_id: projectInfo.squadId || null,
               updated_at: new Date().toISOString()
             })
             .eq('id', currentProjectId);
@@ -210,7 +216,7 @@ export const useProjectManager = () => {
           if (actErr) throw actErr;
 
           // Update local list header
-          setProjectsList(prev => prev.map(p => p.id === currentProjectId ? { ...p, name: projectInfo.name, updated_at: new Date().toISOString() } : p));
+          setProjectsList(prev => prev.map(p => p.id === currentProjectId ? { ...p, name: projectInfo.name, division_id: projectInfo.divisionId, squad_id: projectInfo.squadId, updated_at: new Date().toISOString() } : p));
           setSyncStatus('saved');
         } catch (err) {
           console.error('Error saving to Supabase:', err);
@@ -225,8 +231,8 @@ export const useProjectManager = () => {
   }, [projectInfo, activities, currentProjectId]);
 
   // Create new project
-  const createNewProject = async (name = 'New Project') => {
-    const defaultInfo = getDefaultProjectInfo(name);
+  const createNewProject = async (name = 'New Project', divisionId = null, squadId = null) => {
+    const defaultInfo = getDefaultProjectInfo(name, divisionId, squadId);
     const defaultActs = getDefaultActivities();
 
     if (isCloud) {
@@ -234,7 +240,7 @@ export const useProjectManager = () => {
       try {
         const { data: proj, error: projErr } = await supabase
           .from('projects')
-          .insert([{ name: defaultInfo.name, start_date: defaultInfo.startDate, notes: defaultInfo.notes }])
+          .insert([{ name: defaultInfo.name, start_date: defaultInfo.startDate, notes: defaultInfo.notes, division_id: divisionId, squad_id: squadId }])
           .select()
           .single();
 
@@ -255,7 +261,7 @@ export const useProjectManager = () => {
         const { error: actErr } = await supabase.from('activities').insert(actsPayload);
         if (actErr) throw actErr;
 
-        setProjectsList(prev => [{ id: proj.id, name: proj.name, updated_at: proj.updated_at }, ...prev]);
+        setProjectsList(prev => [{ id: proj.id, name: proj.name, division_id: proj.division_id, squad_id: proj.squad_id, updated_at: proj.updated_at }, ...prev]);
         setCurrentProjectId(proj.id);
         setProjectInfo(defaultInfo);
         setActivities(defaultActs);
@@ -266,7 +272,7 @@ export const useProjectManager = () => {
       }
     } else {
       const newId = 'local-' + Date.now();
-      const newList = [{ id: newId, name: defaultInfo.name, updated_at: new Date().toISOString() }, ...projectsList];
+      const newList = [{ id: newId, name: defaultInfo.name, division_id: divisionId, squad_id: squadId, updated_at: new Date().toISOString() }, ...projectsList];
       setProjectsList(newList);
       setCurrentProjectId(newId);
       setProjectInfo(defaultInfo);
@@ -286,7 +292,7 @@ export const useProjectManager = () => {
       try {
         const { data: proj, error: projErr } = await supabase
           .from('projects')
-          .insert([{ name: newName, start_date: targetInfo ? targetInfo.startDate : format(new Date(), 'yyyy-MM-dd'), notes: targetInfo ? targetInfo.notes : '' }])
+          .insert([{ name: newName, start_date: targetInfo ? targetInfo.startDate : format(new Date(), 'yyyy-MM-dd'), notes: targetInfo ? targetInfo.notes : '', division_id: targetInfo ? targetInfo.divisionId : null, squad_id: targetInfo ? targetInfo.squadId : null }])
           .select()
           .single();
 
@@ -306,7 +312,7 @@ export const useProjectManager = () => {
 
         await supabase.from('activities').insert(actsPayload);
 
-        setProjectsList(prev => [{ id: proj.id, name: proj.name, updated_at: proj.updated_at }, ...prev]);
+        setProjectsList(prev => [{ id: proj.id, name: proj.name, division_id: proj.division_id, squad_id: proj.squad_id, updated_at: proj.updated_at }, ...prev]);
         setCurrentProjectId(proj.id);
         setSyncStatus('saved');
       } catch (err) {
@@ -316,7 +322,7 @@ export const useProjectManager = () => {
     } else {
       const newId = 'local-' + Date.now();
       const duplicatedInfo = { ...targetInfo, name: newName };
-      const newList = [{ id: newId, name: newName, updated_at: new Date().toISOString() }, ...projectsList];
+      const newList = [{ id: newId, name: newName, division_id: targetInfo?.divisionId, squad_id: targetInfo?.squadId, updated_at: new Date().toISOString() }, ...projectsList];
       setProjectsList(newList);
       setCurrentProjectId(newId);
       setProjectInfo(duplicatedInfo);
@@ -416,6 +422,42 @@ export const useProjectManager = () => {
 
   const calculatedActivities = getCalculatedActivities();
 
+  const addActivity = (name = 'New Activity') => {
+    const newActivity = {
+      id: 'act_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+      name: name.trim() || 'New Activity',
+      mandays: 5,
+      startMode: activities.length === 0 ? 'project_start' : 'after_prev',
+      offset: 0,
+      manualStartDate: null,
+      remarks: ''
+    };
+    setActivities(prev => [...prev, newActivity]);
+  };
+
+  const deleteActivity = async (idToDelete) => {
+    if (activities.length <= 1) {
+      alert("A project must have at least one activity.");
+      return;
+    }
+
+    setActivities(prev => {
+      const updated = prev.filter(act => act.id !== idToDelete);
+      if (updated.length > 0 && (updated[0].startMode === 'after_prev' || updated[0].startMode === 'parallel_prev' || updated[0].startMode === 'offset_prev')) {
+        updated[0] = { ...updated[0], startMode: 'project_start' };
+      }
+      return updated;
+    });
+
+    if (isCloud && currentProjectId) {
+      try {
+        await supabase.from('activities').delete().eq('id', String(idToDelete)).eq('project_id', currentProjectId);
+      } catch (err) {
+        console.error('Error deleting activity from Supabase:', err);
+      }
+    }
+  };
+
   const updateProjectInfo = (field, value) => {
     setProjectInfo(prev => ({ ...prev, [field]: value }));
   };
@@ -454,6 +496,8 @@ export const useProjectManager = () => {
     updateProjectInfo,
     activities: calculatedActivities,
     updateActivity,
+    addActivity,
+    deleteActivity,
     reorderActivities,
     resetData,
     isLoading,
@@ -461,3 +505,4 @@ export const useProjectManager = () => {
     isCloud
   };
 };
+

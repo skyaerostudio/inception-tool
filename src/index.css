@@ -532,33 +532,109 @@ select:focus {
   flex: 1;
 }
 
-.project-dropdown-wrapper {
+/* Custom Dropdown Component */
+.custom-dropdown-container {
+  position: relative;
+  flex: 1;
+  min-width: 260px;
+}
+
+.custom-dropdown-trigger {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.3);
   border: 1px solid var(--border);
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: var(--radius-sm);
-  flex: 1;
-  min-width: 240px;
+  width: 100%;
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  text-align: left;
 }
 
-.project-dropdown-wrapper .folder-icon {
+.custom-dropdown-trigger:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--primary);
+}
+
+.selected-project-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron-icon {
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
+}
+
+.chevron-icon.open {
+  transform: rotate(180deg);
+  color: var(--primary);
+}
+
+.custom-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  max-height: 280px;
+  overflow-y: auto;
+  z-index: 500;
+  padding: 6px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.custom-dropdown-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-radius: 4px;
+  color: var(--text-main);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.custom-dropdown-item:hover {
+  background: var(--surface-hover);
+  color: #fff;
+}
+
+.custom-dropdown-item.selected {
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  font-weight: 600;
+}
+
+.custom-dropdown-item .check-icon {
   color: var(--primary);
   flex-shrink: 0;
 }
 
-.project-select {
-  background: transparent;
-  border: none;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 600;
-  width: 100%;
-  cursor: pointer;
-  outline: none;
-  padding: 4px 0;
+.project-item-name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-right: 8px;
 }
 
 .project-actions {
@@ -696,3 +772,430 @@ select:focus {
   animation: spin 0.8s linear infinite;
 }
 
+/* Activity Table Action Buttons */
+.table-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.btn-sm {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
+.btn-icon-danger {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.btn-icon-danger:hover:not(:disabled) {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.15);
+}
+
+.btn-icon-danger:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.add-activity-footer {
+  display: flex;
+  justify-content: flex-start;
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+
+/* ============================================
+   Filter Bar
+   ============================================ */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+
+.filter-bar-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+}
+
+.filter-select {
+  background: var(--surface);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 5px 10px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.filter-select:focus {
+  border-color: var(--primary);
+}
+
+.filter-clear-btn {
+  background: transparent;
+  color: var(--primary);
+  border: none;
+  font-size: 0.78rem;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.filter-clear-btn:hover {
+  background: rgba(99, 102, 241, 0.12);
+}
+
+/* ============================================
+   Enhanced Dropdown Items with Metadata
+   ============================================ */
+.dropdown-item-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.project-item-meta,
+.selected-project-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  opacity: 0.75;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.selected-project-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;
+}
+
+.dropdown-empty {
+  padding: 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* ============================================
+   Organization Badges (ProjectInfo)
+   ============================================ */
+.org-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 500;
+  background: rgba(99, 102, 241, 0.1);
+  color: #a5b4fc;
+  border: 1px solid rgba(99, 102, 241, 0.2);
+}
+
+.org-badge.unassigned {
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+
+/* ============================================
+   Org Manager Modal
+   ============================================ */
+.org-modal {
+  max-width: 680px;
+  width: 90vw;
+}
+
+.org-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.org-modal-header h3 {
+  font-size: 1.15rem;
+  font-weight: 600;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-close:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.org-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 600px) {
+  .org-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.org-column {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+
+.org-column-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 12px;
+  color: var(--text-main);
+}
+
+.org-count {
+  margin-left: auto;
+  background: rgba(99, 102, 241, 0.15);
+  color: #a5b4fc;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 100px;
+}
+
+.org-add-form {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.org-add-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px 10px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.82rem;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.org-add-input:focus {
+  border-color: var(--primary);
+}
+
+.org-add-input::placeholder {
+  color: var(--text-muted);
+  opacity: 0.5;
+}
+
+.btn-add-org {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-add-org:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-add-org:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.org-list {
+  max-height: 260px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.org-empty {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.82rem;
+  padding: 24px 10px;
+  opacity: 0.6;
+}
+
+.org-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  transition: background 0.15s ease;
+}
+
+.org-item:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.org-item-name {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.org-item-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.org-item:hover .org-item-actions {
+  opacity: 1;
+}
+
+.org-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.org-action-btn:hover {
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.org-action-btn.danger:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.org-action-btn.save {
+  color: #22c55e;
+}
+
+.org-action-btn.save:hover {
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.org-action-btn.cancel {
+  color: var(--text-muted);
+}
+
+.org-item-editing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+
+.org-edit-input {
+  flex: 1;
+  background: var(--bg-color);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-sm);
+  padding: 5px 8px;
+  color: var(--text-main);
+  font-family: inherit;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+/* ============================================
+   Create Project Modal Enhancements
+   ============================================ */
+.form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 500px) {
+  .form-row-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.modal-select {
+  width: 100%;
+  background: var(--surface);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+
+.modal-select:focus {
+  border-color: var(--primary);
+}
+
+.warning-hint {
+  color: var(--warning) !important;
+}
