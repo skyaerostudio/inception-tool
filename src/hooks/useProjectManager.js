@@ -32,6 +32,7 @@ export const useProjectManager = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState('idle'); // 'idle' | 'saving' | 'saved' | 'error' | 'local'
   const isCloud = isSupabaseConfigured();
+  const projectDataLoaded = useRef(false);
 
   // Helper to save to local storage
   const saveToLocalStorage = useCallback((id, info, acts, list) => {
@@ -101,6 +102,7 @@ export const useProjectManager = () => {
   useEffect(() => {
     if (!currentProjectId) return;
     let isMounted = true;
+    projectDataLoaded.current = false;
 
     const loadProjectData = async () => {
       if (isCloud) {
@@ -146,6 +148,7 @@ export const useProjectManager = () => {
               setActivities(getDefaultActivities());
             }
             setSyncStatus('saved');
+            projectDataLoaded.current = true;
           }
         } catch (err) {
           console.error('Error fetching project data from Supabase:', err);
@@ -159,6 +162,7 @@ export const useProjectManager = () => {
           setProjectInfo(parsed.projectInfo);
           setActivities(parsed.activities);
           setSyncStatus('local');
+          projectDataLoaded.current = true;
         }
       }
     };
@@ -175,6 +179,7 @@ export const useProjectManager = () => {
       return;
     }
     if (!currentProjectId || isLoading) return;
+    if (!projectDataLoaded.current) return;
 
     setSyncStatus(isCloud ? 'saving' : 'local');
     const timer = setTimeout(async () => {
