@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProjectManager } from './hooks/useProjectManager';
 import { useOrgData } from './hooks/useOrgData';
 import { Header } from './components/Header';
@@ -45,6 +45,14 @@ function App() {
 
   const [isOrgManagerOpen, setIsOrgManagerOpen] = useState(false);
 
+  useEffect(() => {
+    if (projectInfo && projectInfo.name) {
+      document.title = `${projectInfo.name} - Project Schedule Planner`;
+    } else {
+      document.title = 'Project Schedule Planner';
+    }
+  }, [projectInfo?.name]);
+
   if (isLoading || isOrgLoading) {
     return (
       <div className="app-loading">
@@ -90,6 +98,8 @@ function App() {
           projectInfo={projectInfo} 
           activities={activities} 
           resetData={resetData} 
+          divisions={divisions}
+          squads={squads}
         />
 
         <Timeline 

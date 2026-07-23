@@ -1199,3 +1199,224 @@ select:focus {
 .warning-hint {
   color: var(--warning) !important;
 }
+
+/* ============================================
+   Print Styles for PDF Export
+   ============================================ */
+.print-only {
+  display: none !important;
+}
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm 15mm;
+  }
+
+  :root {
+    --bg-color: #ffffff !important;
+    --surface: #ffffff !important;
+    --surface-hover: #f8fafc !important;
+    --text-main: #0f172a !important;
+    --text-muted: #64748b !important;
+    --primary: #4f46e5 !important;
+    --primary-hover: #4338ca !important;
+    --secondary: #64748b !important;
+    --secondary-hover: #475569 !important;
+    --weekend-bg: #f8fafc !important;
+    --holiday-bg: #fee2e2 !important;
+    --holiday-text: #ef4444 !important;
+    --border: #e2e8f0 !important;
+    --warning: #d97706 !important;
+    --bar-color: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%) !important;
+  }
+
+  /* Force background colors to print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+    font-size: 11pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .app-container {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Hide UI elements */
+  .no-print,
+  .app-header,
+  .action-panel,
+  .add-activity-footer,
+  .table-header-actions,
+  .warning-tooltip,
+  .modal-overlay,
+  .org-manager-container {
+    display: none !important;
+  }
+
+  /* Show print-only textual values */
+  .print-only {
+    display: inline-block !important;
+  }
+  
+  .print-only.print-text {
+    color: #0f172a !important;
+    font-size: 0.95rem !important;
+    word-break: break-word;
+  }
+
+  .print-only.notes-print-text {
+    display: block !important;
+    white-space: pre-wrap;
+    padding: 8px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    margin-top: 4px;
+  }
+
+  /* Card layouts */
+  .card {
+    background: #ffffff !important;
+    border: 1px solid #cbd5e1 !important;
+    box-shadow: none !important;
+    padding: 16px !important;
+    margin-bottom: 20px !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .card h2 {
+    color: #0f172a !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    font-size: 1.1rem !important;
+    margin-bottom: 12px !important;
+    padding-bottom: 8px !important;
+  }
+
+  /* Table styling */
+  .activity-table {
+    border-collapse: collapse !important;
+    border-spacing: 0 !important;
+    width: 100% !important;
+  }
+
+  .activity-table tr {
+    background: transparent !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+
+  .activity-table th {
+    color: #475569 !important;
+    border-bottom: 2px solid #94a3b8 !important;
+    font-size: 0.8rem !important;
+    padding: 6px 8px !important;
+    text-transform: uppercase !important;
+  }
+
+  .activity-table td {
+    padding: 8px 8px !important;
+    font-size: 0.85rem !important;
+    background: transparent !important;
+  }
+
+  /* Timeline page layout & breaks */
+  .timeline-section {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .timeline-container {
+    overflow: visible !important;
+  }
+
+  .timeline-grid {
+    min-width: 100% !important;
+    grid-template-columns: 140px repeat(var(--total-days), minmax(15px, 1fr)) !important;
+    border: 1px solid #cbd5e1 !important;
+    background: #ffffff !important;
+  }
+
+
+
+  .sticky-left {
+    position: static !important;
+    border-right: 1px solid #cbd5e1 !important;
+  }
+
+  .timeline-header-cell {
+    background: #f1f5f9 !important;
+    color: #475569 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    border-right: 1px solid #cbd5e1 !important;
+    padding: 4px 1px !important;
+  }
+
+  .timeline-header-cell.sticky-left {
+    background: #f1f5f9 !important;
+    font-weight: 600 !important;
+    font-size: 0.8rem !important;
+    padding: 8px !important;
+  }
+
+  .date-cell .day-name,
+  .date-cell .month-name {
+    font-size: 0.6rem !important;
+    color: #64748b !important;
+  }
+
+  .date-cell .day-number {
+    font-size: 0.85rem !important;
+    color: #0f172a !important;
+    margin: 2px 0 !important;
+  }
+
+  .timeline-activity-name {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+    color: #0f172a !important;
+    background: #ffffff !important;
+  }
+
+  .timeline-bg-cell {
+    border-bottom: 1px solid #cbd5e1 !important;
+    border-right: 1px solid #e2e8f0 !important;
+  }
+
+  .timeline-bg-cell.weekend {
+    background-color: #f8fafc !important;
+  }
+
+  .timeline-bg-cell.holiday {
+    background-color: #fee2e2 !important;
+  }
+
+  .timeline-bar-wrapper {
+    padding: 4px 0 !important;
+    border-bottom: 1px solid #cbd5e1 !important;
+  }
+
+  .timeline-bar {
+    height: 16px !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+  }
+
+  .bar-label {
+    font-size: 0.65rem !important;
+    padding: 0 4px !important;
+  }
+
+}

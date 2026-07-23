@@ -54,7 +54,10 @@ export const Timeline = ({ activities }) => {
         <div 
           key={gridKey}
           className="timeline-grid" 
-          style={{ gridTemplateColumns: `250px repeat(${timelineData.totalDays}, minmax(30px, 1fr))` }}
+          style={{ 
+            '--total-days': timelineData.totalDays,
+            gridTemplateColumns: `250px repeat(${timelineData.totalDays}, minmax(30px, 1fr))` 
+          }}
         >
           
           {/* Header Row */}

@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Copy, RotateCcw, Check } from 'lucide-react';
+import { Copy, RotateCcw, Check, Printer, FileSpreadsheet } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { exportProjectToExcel } from '../utils/excelExport';
 
-export const ActionPanel = ({ projectInfo, activities, resetData }) => {
+export const ActionPanel = ({ projectInfo, activities, resetData, divisions, squads }) => {
   const [copied, setCopied] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const handleCopy = () => {
     let summary = `Project: ${projectInfo.name}\n\n`;
@@ -18,11 +20,31 @@ export const ActionPanel = ({ projectInfo, activities, resetData }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      await exportProjectToExcel(projectInfo, activities, divisions, squads);
+    } catch (err) {
+      console.error('Failed to export to Excel', err);
+      alert('Failed to generate Excel file.');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
-    <div className="action-panel">
+    <div className="action-panel no-print">
       <button className="btn btn-secondary" onClick={resetData}>
         <RotateCcw size={18} />
         Reset Planning Data
+      </button>
+      <button className="btn btn-secondary" onClick={() => window.print()}>
+        <Printer size={18} />
+        Export PDF / Print
+      </button>
+      <button className="btn btn-secondary" onClick={handleExportExcel} disabled={exporting}>
+        <FileSpreadsheet size={18} />
+        {exporting ? 'Exporting...' : 'Export Excel'}
       </button>
       <button className="btn btn-primary" onClick={handleCopy}>
         {copied ? <Check size={18} /> : <Copy size={18} />}

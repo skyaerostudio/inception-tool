@@ -16,6 +16,15 @@ export const ActivityTable = ({
     reorderActivities(result.source.index, result.destination.index);
   };
 
+  const getDependencyText = (act, index) => {
+    if (index === 0 || act.startMode === 'project_start') return 'Project Start Date';
+    if (act.startMode === 'after_prev') return 'After Previous Ends';
+    if (act.startMode === 'parallel_prev') return 'Same Time as Previous';
+    if (act.startMode === 'offset_prev') return `${act.offset || 0} days after previous`;
+    if (act.startMode === 'manual') return 'Manual Specific Date';
+    return '';
+  };
+
   const renderStartModeOptions = (index) => {
     if (index === 0) {
       return <option value="project_start">Project Start Date</option>;
@@ -34,7 +43,7 @@ export const ActivityTable = ({
     <section className="card activity-table-section">
       <div className="table-header-flex">
         <h2>Activity Planning</h2>
-        <div className="table-header-actions">
+        <div className="table-header-actions no-print">
           <button 
             type="button" 
             className="btn btn-primary btn-sm"
@@ -51,14 +60,14 @@ export const ActivityTable = ({
         <table className="activity-table">
           <thead>
             <tr>
-              <th width="40"></th>
+              <th width="40" className="no-print"></th>
               <th width="200">Activity</th>
               <th width="100">Mandays</th>
               <th width="220">Start Dependency</th>
               <th width="150">Start Date</th>
               <th width="150">End Date</th>
               <th>Remarks</th>
-              <th width="50" style={{ textAlign: 'center' }}>Action</th>
+              <th width="50" style={{ textAlign: 'center' }} className="no-print">Action</th>
             </tr>
           </thead>
           <DragDropContext onDragEnd={handleDragEnd}>
@@ -77,28 +86,31 @@ export const ActivityTable = ({
                             {...provided.draggableProps}
                             className={snapshot.isDragging ? 'is-dragging' : ''}
                           >
-                            <td className="drag-handle" {...provided.dragHandleProps}>
+                            <td className="drag-handle no-print" {...provided.dragHandleProps}>
                               <GripVertical size={18} />
                             </td>
                             <td>
+                              <span className="print-only print-text">{act.name}</span>
                               <input
                                 type="text"
                                 value={act.name}
                                 onChange={(e) => updateActivity(act.id, 'name', e.target.value)}
-                                className="activity-input"
+                                className="activity-input no-print"
                               />
                             </td>
                             <td>
+                              <span className="print-only print-text">{act.mandays}</span>
                               <input
                                 type="number"
                                 min="1"
                                 value={act.mandays}
                                 onChange={(e) => updateActivity(act.id, 'mandays', parseInt(e.target.value) || '')}
-                                className="number-input"
+                                className="number-input no-print"
                               />
                             </td>
                             <td>
-                              <div className="dependency-cell">
+                              <span className="print-only print-text">{getDependencyText(act, index)}</span>
+                              <div className="dependency-cell no-print">
                                 <select
                                   value={act.startMode}
                                   onChange={(e) => updateActivity(act.id, 'startMode', e.target.value)}
@@ -123,19 +135,24 @@ export const ActivityTable = ({
                             <td>
                               <div className="start-date-cell">
                                 {act.startMode === 'manual' ? (
-                                  <input
-                                    type="date"
-                                    value={act.manualStartDate || ''}
-                                    onChange={(e) => updateActivity(act.id, 'manualStartDate', e.target.value)}
-                                    className="date-input"
-                                  />
+                                  <>
+                                    <span className="print-only print-text">
+                                      {act.manualStartDate ? format(parseISO(act.manualStartDate), 'dd MMM yyyy') : '-'}
+                                    </span>
+                                    <input
+                                      type="date"
+                                      value={act.manualStartDate || ''}
+                                      onChange={(e) => updateActivity(act.id, 'manualStartDate', e.target.value)}
+                                      className="date-input no-print"
+                                    />
+                                  </>
                                 ) : (
                                   <span className="calculated-date">
                                     {act.startDate ? format(parseISO(act.startDate), 'dd MMM yyyy') : '-'}
                                   </span>
                                 )}
                                 {isNonWorkingStart && act.startMode === 'manual' && (
-                                  <div className="warning-tooltip" title="Selected date is a non-working day. It will be pushed to the next working day.">
+                                  <div className="warning-tooltip no-print" title="Selected date is a non-working day. It will be pushed to the next working day.">
                                     <AlertCircle size={14} className="warning-icon" />
                                   </div>
                                 )}
@@ -147,15 +164,16 @@ export const ActivityTable = ({
                               </span>
                             </td>
                             <td>
+                              <span className="print-only print-text">{act.remarks || '-'}</span>
                               <input
                                 type="text"
                                 value={act.remarks}
                                 onChange={(e) => updateActivity(act.id, 'remarks', e.target.value)}
                                 placeholder="Notes..."
-                                className="activity-input"
+                                className="activity-input no-print"
                               />
                             </td>
-                            <td style={{ textAlign: 'center' }}>
+                            <td style={{ textAlign: 'center' }} className="no-print">
                               <button
                                 type="button"
                                 className="btn-icon-danger"
@@ -178,7 +196,7 @@ export const ActivityTable = ({
           </DragDropContext>
         </table>
         
-        <div className="add-activity-footer">
+        <div className="add-activity-footer no-print">
           <button 
             type="button" 
             className="btn btn-secondary btn-sm"
