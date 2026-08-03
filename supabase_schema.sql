@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS public.activities (
     start_mode TEXT NOT NULL DEFAULT 'after_prev',
     offset_days INTEGER DEFAULT 0,
     manual_start_date DATE,
+    actual_start_date DATE,
+    actual_end_date DATE,
     remarks TEXT,
     position_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),

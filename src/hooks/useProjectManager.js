@@ -20,7 +20,9 @@ const getDefaultActivities = () => {
     ...act,
     startMode: index === 0 ? 'project_start' : 'after_prev',
     offset: 0,
-    manualStartDate: null
+    manualStartDate: null,
+    actualStartDate: null,
+    actualEndDate: null
   }));
 };
 
@@ -142,6 +144,8 @@ export const useProjectManager = () => {
                 startMode: a.start_mode,
                 offset: a.offset_days || 0,
                 manualStartDate: a.manual_start_date || null,
+                actualStartDate: a.actual_start_date || null,
+                actualEndDate: a.actual_end_date || null,
                 remarks: a.remarks || ''
               })));
             } else {
@@ -209,6 +213,8 @@ export const useProjectManager = () => {
             start_mode: act.startMode || 'after_prev',
             offset_days: parseInt(act.offset) || 0,
             manual_start_date: act.manualStartDate || null,
+            actual_start_date: act.actualStartDate || null,
+            actual_end_date: act.actualEndDate || null,
             remarks: act.remarks || '',
             position_order: index,
             updated_at: new Date().toISOString()
@@ -259,6 +265,8 @@ export const useProjectManager = () => {
           start_mode: act.startMode,
           offset_days: act.offset,
           manual_start_date: act.manualStartDate,
+          actual_start_date: act.actualStartDate || null,
+          actual_end_date: act.actualEndDate || null,
           remarks: act.remarks,
           position_order: index
         }));
@@ -311,6 +319,8 @@ export const useProjectManager = () => {
           start_mode: act.startMode,
           offset_days: act.offset,
           manual_start_date: act.manualStartDate,
+          actual_start_date: act.actualStartDate || null,
+          actual_end_date: act.actualEndDate || null,
           remarks: act.remarks,
           position_order: index
         }));
@@ -435,6 +445,8 @@ export const useProjectManager = () => {
       startMode: activities.length === 0 ? 'project_start' : 'after_prev',
       offset: 0,
       manualStartDate: null,
+      actualStartDate: null,
+      actualEndDate: null,
       remarks: ''
     };
     setActivities(prev => [...prev, newActivity]);

@@ -11,6 +11,8 @@ export const ActivityTable = ({
   addActivity, 
   deleteActivity 
 }) => {
+  const [showActuals, setShowActuals] = React.useState(false);
+
   const handleDragEnd = (result) => {
     if (!result.destination) return;
     reorderActivities(result.source.index, result.destination.index);
@@ -44,6 +46,14 @@ export const ActivityTable = ({
       <div className="table-header-flex">
         <h2>Activity Planning</h2>
         <div className="table-header-actions no-print">
+          <button
+            type="button"
+            className={`btn btn-sm ${showActuals ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setShowActuals(!showActuals)}
+            title="Toggle logging actual start and end dates for milestones"
+          >
+            <span>{showActuals ? '✓ Actual Dates Visible' : '+ Log Actual Dates'}</span>
+          </button>
           <button 
             type="button" 
             className="btn btn-primary btn-sm"
@@ -62,10 +72,12 @@ export const ActivityTable = ({
             <tr>
               <th width="40" className="no-print"></th>
               <th width="200">Activity</th>
-              <th width="100">Mandays</th>
-              <th width="220">Start Dependency</th>
-              <th width="150">Start Date</th>
-              <th width="150">End Date</th>
+              <th width="90">Mandays</th>
+              <th width="200">Start Dependency</th>
+              <th width="140">Planned Start</th>
+              <th width="140">Planned End</th>
+              {showActuals && <th width="140">Actual Start</th>}
+              {showActuals && <th width="140">Actual End</th>}
               <th>Remarks</th>
               <th width="50" style={{ textAlign: 'center' }} className="no-print">Action</th>
             </tr>
@@ -163,6 +175,32 @@ export const ActivityTable = ({
                                 {act.endDate ? format(parseISO(act.endDate), 'dd MMM yyyy') : '-'}
                               </span>
                             </td>
+                            {showActuals && (
+                              <td>
+                                <span className="print-only print-text">
+                                  {act.actualStartDate ? format(parseISO(act.actualStartDate), 'dd MMM yyyy') : '-'}
+                                </span>
+                                <input
+                                  type="date"
+                                  value={act.actualStartDate || ''}
+                                  onChange={(e) => updateActivity(act.id, 'actualStartDate', e.target.value)}
+                                  className="date-input no-print"
+                                />
+                              </td>
+                            )}
+                            {showActuals && (
+                              <td>
+                                <span className="print-only print-text">
+                                  {act.actualEndDate ? format(parseISO(act.actualEndDate), 'dd MMM yyyy') : '-'}
+                                </span>
+                                <input
+                                  type="date"
+                                  value={act.actualEndDate || ''}
+                                  onChange={(e) => updateActivity(act.id, 'actualEndDate', e.target.value)}
+                                  className="date-input no-print"
+                                />
+                              </td>
+                            )}
                             <td>
                               <span className="print-only print-text">{act.remarks || '-'}</span>
                               <input

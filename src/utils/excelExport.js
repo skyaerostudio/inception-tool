@@ -438,3 +438,489 @@ const getDependencyText = (act, index) => {
   if (act.startMode === 'manual') return 'Manual Specific Date';
   return '';
 };
+
+export const exportBatchSummaryToExcel = async ({
+  projectsData,
+  filterDivisionName = 'All Divisions',
+  filterSquadName = 'All Squads',
+  includeMilestones = true,
+  exportMode = 'COMPILED_RKA' // 'COMPILED_RKA' | 'SINGLE_SUMMARY'
+}) => {
+  const workbook = new ExcelJS.Workbook();
+
+  // Helper for dependency text
+  const getDepText = (act, index) => {
+    if (index === 0 || act.startMode === 'project_start') return 'Project Start Date';
+    if (act.startMode === 'after_prev') return 'After Previous Ends';
+    if (act.startMode === 'parallel_prev') return 'Same Time as Previous';
+    if (act.startMode === 'offset_prev') return `${act.offset || 0} days after previous`;
+    if (act.startMode === 'manual') return 'Manual Specific Date';
+    return '';
+  };
+
+  if (exportMode === 'SINGLE_SUMMARY') {
+    // -------------------------------------------------------------
+    // FLAT SINGLE SUMMARY SHEET
+    // -------------------------------------------------------------
+    const summarySheet = workbook.addWorksheet('Inception Summaries');
+    summarySheet.columns = [
+      { key: 'colA', width: 4 },
+      { key: 'colB', width: 6 },
+      { key: 'colC', width: 28 },
+      { key: 'colD', width: 18 },
+      { key: 'colE', width: 18 },
+      { key: 'colF', width: 15 },
+      { key: 'colG', width: 15 },
+      { key: 'colH', width: 15 },
+      { key: 'colI', width: 15 },
+      { key: 'colJ', width: 15 },
+      { key: 'colK', width: 14 },
+      { key: 'colL', width: 42 },
+      { key: 'colM', width: 30 }
+    ];
+
+    // Banner
+    summarySheet.mergeCells('B2:M2');
+    const titleCell = summarySheet.getCell('B2');
+    titleCell.value = 'INCEPTION RESULTS BATCH SUMMARY REPORT';
+    titleCell.font = { name: 'Outfit', size: 16, bold: true, color: { argb: 'FFFFFF' } };
+    titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4F46E5' } };
+    titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+    summarySheet.getRow(2).height = 42;
+
+    // Metadata
+    summarySheet.getCell('B4').value = 'Division Filter:';
+    summarySheet.getCell('B4').font = { name: 'Outfit', bold: true, size: 10 };
+    summarySheet.getCell('C4').value = filterDivisionName;
+
+    summarySheet.getCell('E4').value = 'Squad Filter:';
+    summarySheet.getCell('E4').font = { name: 'Outfit', bold: true, size: 10 };
+    summarySheet.getCell('F4').value = filterSquadName;
+
+    summarySheet.getCell('H4').value = 'Export Date:';
+    summarySheet.getCell('H4').font = { name: 'Outfit', bold: true, size: 10 };
+    summarySheet.getCell('I4').value = format(new Date(), 'dd MMM yyyy HH:mm');
+
+    summarySheet.getCell('B5').value = 'Total Inceptions:';
+    summarySheet.getCell('B5').font = { name: 'Outfit', bold: true, size: 10 };
+    summarySheet.getCell('C5').value = projectsData.length;
+
+    const headers = [
+      '#', 'Project Name', 'Division', 'Squad', 
+      'Planned Start', 'Target End', 'Actual Start', 'Actual End', 
+      'Total Mandays', 'Activities', 'Milestones Breakdown (Plan vs Act)', 'Notes'
+    ];
+
+    headers.forEach((h, idx) => {
+      const colLetter = String.fromCharCode(66 + idx);
+      const cell = summarySheet.getCell(`${colLetter}7`);
+      cell.value = h;
+      cell.font = { name: 'Outfit', size: 11, bold: true, color: { argb: 'FFFFFF' } };
+      cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E293B' } };
+      cell.alignment = { vertical: 'middle', horizontal: (idx === 0 || idx >= 8) ? 'center' : 'left' };
+      cell.border = {
+        top: { style: 'medium', color: { argb: '475569' } },
+        bottom: { style: 'medium', color: { argb: '475569' } },
+        left: { style: 'thin', color: { argb: 'CBD5E1' } },
+        right: { style: 'thin', color: { argb: 'CBD5E1' } }
+      };
+    });
+    summarySheet.getRow(7).height = 28;
+
+    let currentRow = 8;
+    projectsData.forEach((proj, idx) => {
+      const isEven = idx % 2 === 0;
+      const bgArgb = isEven ? 'FFFFFF' : 'F8FAFC';
+
+      const milestoneText = (proj.activities || []).map(a => {
+        const plan = `${a.startDate ? format(parseISO(a.startDate), 'dd MMM') : '?'} - ${a.endDate ? format(parseISO(a.endDate), 'dd MMM') : '?'}`;
+        const act = (a.actualStartDate || a.actualEndDate)
+          ? ` [Act: ${a.actualStartDate ? format(parseISO(a.actualStartDate), 'dd MMM') : '-'} to ${a.actualEndDate ? format(parseISO(a.actualEndDate), 'dd MMM') : '-'}]`
+          : '';
+        return `• ${a.name}: ${plan}${act}`;
+      }).join('\n');
+
+      const rowValues = [
+        idx + 1,
+        proj.name,
+        proj.divisionName,
+        proj.squadName,
+        proj.plannedStartDate ? format(parseISO(proj.plannedStartDate), 'dd MMM yyyy') : '-',
+        proj.plannedEndDate ? format(parseISO(proj.plannedEndDate), 'dd MMM yyyy') : '-',
+        proj.actualStartDate ? format(parseISO(proj.actualStartDate), 'dd MMM yyyy') : '-',
+        proj.actualEndDate ? format(parseISO(proj.actualEndDate), 'dd MMM yyyy') : '-',
+        proj.totalMandays,
+        proj.activityCount,
+        milestoneText,
+        proj.notes || ''
+      ];
+
+      rowValues.forEach((val, colIdx) => {
+        const colLetter = String.fromCharCode(66 + colIdx);
+        const cell = summarySheet.getCell(`${colLetter}${currentRow}`);
+        cell.value = val;
+        cell.font = { name: 'Outfit', size: 10 };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bgArgb } };
+        cell.border = {
+          top: { style: 'thin', color: { argb: 'E2E8F0' } },
+          bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+          left: { style: 'thin', color: { argb: 'E2E8F0' } },
+          right: { style: 'thin', color: { argb: 'E2E8F0' } }
+        };
+        if (colIdx === 0 || colIdx === 8 || colIdx === 9) {
+          cell.alignment = { vertical: 'middle', horizontal: 'center' };
+        } else if (colIdx === 10 || colIdx === 11) {
+          cell.alignment = { vertical: 'top', horizontal: 'left', wrapText: true };
+        } else {
+          cell.alignment = { vertical: 'middle', horizontal: 'left' };
+        }
+      });
+      currentRow++;
+    });
+  } else {
+    // -------------------------------------------------------------
+    // COMPILED DIVISION RKA FORMAT (MATCHING Compiled Divisi RKA.xlsx)
+    // Paired Tabs per Squad: "{Squad Name} Summary" & "Gantt {Squad Name}"
+    // -------------------------------------------------------------
+    
+    // Group projects by squad
+    const squadGroups = new Map();
+    projectsData.forEach(proj => {
+      const sqKey = proj.squadName || 'Unassigned Squad';
+      if (!squadGroups.has(sqKey)) squadGroups.set(sqKey, []);
+      squadGroups.get(sqKey).push(proj);
+    });
+
+    squadGroups.forEach((squadProjects, squadName) => {
+      // Clean sheet name (max 28 chars)
+      const cleanSquadName = squadName.replace(/[\\/*?:[\]]/g, '').substring(0, 24);
+      
+      // ---------------------------------------------------------
+      // TAB 1: {Squad Name} Summary
+      // ---------------------------------------------------------
+      const summarySheetName = `${cleanSquadName} Summary`.substring(0, 30);
+      const summarySheet = workbook.addWorksheet(summarySheetName);
+
+      summarySheet.columns = [
+        { key: 'colA', width: 4 },
+        { key: 'colB', width: 6 },   // #
+        { key: 'colC', width: 34 },  // Activity Name
+        { key: 'colD', width: 12 },  // Mandays
+        { key: 'colE', width: 24 },  // Start Dependency
+        { key: 'colF', width: 16 },  // Start Date
+        { key: 'colG', width: 16 },  // End Date
+        { key: 'colH', width: 38 }   // Remarks
+      ];
+
+      let baseRow = 2;
+      squadProjects.forEach((proj) => {
+        // Project Header Banner
+        summarySheet.mergeCells(`B${baseRow}:H${baseRow}`);
+        const titleCell = summarySheet.getCell(`B${baseRow}`);
+        titleCell.value = 'PROJECT SCHEDULE SUMMARY REPORT';
+        titleCell.font = { name: 'Outfit', size: 14, bold: true, color: { argb: 'FFFFFF' } };
+        titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '4F46E5' } };
+        titleCell.alignment = { vertical: 'middle', horizontal: 'center' };
+        summarySheet.getRow(baseRow).height = 36;
+
+        // Metadata Card
+        const rName = baseRow + 2;
+        summarySheet.getCell(`B${rName}`).value = 'Project Name:';
+        summarySheet.getCell(`B${rName}`).font = { name: 'Outfit', bold: true, size: 10 };
+        summarySheet.getCell(`C${rName}`).value = proj.name;
+        summarySheet.mergeCells(`C${rName}:D${rName}`);
+
+        summarySheet.getCell(`G${rName}`).value = 'Start Date:';
+        summarySheet.getCell(`G${rName}`).font = { name: 'Outfit', bold: true, size: 10 };
+        summarySheet.getCell(`H${rName}`).value = proj.plannedStartDate ? format(parseISO(proj.plannedStartDate), 'dd MMM yyyy') : 'TBD';
+
+        const rDiv = baseRow + 3;
+        summarySheet.getCell(`B${rDiv}`).value = 'Division:';
+        summarySheet.getCell(`B${rDiv}`).font = { name: 'Outfit', bold: true, size: 10 };
+        summarySheet.getCell(`C${rDiv}`).value = proj.divisionName;
+
+        summarySheet.getCell(`G${rDiv}`).value = 'Squad:';
+        summarySheet.getCell(`G${rDiv}`).font = { name: 'Outfit', bold: true, size: 10 };
+        summarySheet.getCell(`H${rDiv}`).value = proj.squadName;
+
+        const rNotes = baseRow + 4;
+        summarySheet.getCell(`B${rNotes}`).value = 'Notes:';
+        summarySheet.getCell(`B${rNotes}`).font = { name: 'Outfit', bold: true, size: 10 };
+        summarySheet.getCell(`C${rNotes}`).value = proj.notes || 'None';
+        summarySheet.mergeCells(`C${rNotes}:H${rNotes}`);
+
+        for (let r = rName; r <= rNotes; r++) {
+          const row = summarySheet.getRow(r);
+          row.height = 20;
+          row.eachCell(cell => {
+            if (!cell.font) cell.font = { name: 'Outfit', size: 10 };
+          });
+        }
+
+        // Activity Table Header
+        const tableHeaderRow = baseRow + 6;
+        const headers = ['#', 'Activity Name', 'Mandays', 'Start Dependency', 'Start Date', 'End Date', 'Remarks'];
+        headers.forEach((h, idx) => {
+          const colLetter = String.fromCharCode(66 + idx); // B to H
+          const cell = summarySheet.getCell(`${colLetter}${tableHeaderRow}`);
+          cell.value = h;
+          cell.font = { name: 'Outfit', size: 10, bold: true, color: { argb: 'FFFFFF' } };
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '334155' } };
+          cell.alignment = { vertical: 'middle', horizontal: idx === 0 || idx === 2 ? 'center' : 'left' };
+          cell.border = {
+            top: { style: 'thin', color: { argb: 'CBD5E1' } },
+            bottom: { style: 'medium', color: { argb: '94A3B8' } },
+            left: { style: 'thin', color: { argb: 'CBD5E1' } },
+            right: { style: 'thin', color: { argb: 'CBD5E1' } }
+          };
+        });
+        summarySheet.getRow(tableHeaderRow).height = 25;
+
+        // Activity Data Rows
+        let actStartRow = tableHeaderRow + 1;
+        let actCurrentRow = actStartRow;
+
+        (proj.activities || []).forEach((act, idx) => {
+          const rowVals = [
+            idx + 1,
+            act.name,
+            parseInt(act.mandays) || 0,
+            getDepText(act, idx),
+            act.startDate ? format(parseISO(act.startDate), 'dd MMM yyyy') : '-',
+            act.endDate ? format(parseISO(act.endDate), 'dd MMM yyyy') : '-',
+            act.remarks || '-'
+          ];
+
+          rowVals.forEach((val, colIdx) => {
+            const colLetter = String.fromCharCode(66 + colIdx);
+            const cell = summarySheet.getCell(`${colLetter}${actCurrentRow}`);
+            cell.value = val;
+            cell.font = { name: 'Outfit', size: 10 };
+            cell.border = {
+              top: { style: 'thin', color: { argb: 'E2E8F0' } },
+              bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+              left: { style: 'thin', color: { argb: 'E2E8F0' } },
+              right: { style: 'thin', color: { argb: 'E2E8F0' } }
+            };
+            cell.alignment = { vertical: 'middle', horizontal: colIdx === 0 || colIdx === 2 ? 'center' : 'left' };
+          });
+          summarySheet.getRow(actCurrentRow).height = 20;
+          actCurrentRow++;
+        });
+
+        // Totals Row
+        const totRow = actCurrentRow;
+        summarySheet.getCell(`B${totRow}`).value = 'Total';
+        summarySheet.getCell(`B${totRow}`).font = { name: 'Outfit', size: 10, bold: true };
+        summarySheet.getCell(`B${totRow}`).alignment = { vertical: 'middle', horizontal: 'left' };
+
+        const totMandaysCell = summarySheet.getCell(`D${totRow}`);
+        totMandaysCell.value = { formula: `SUM(D${actStartRow}:D${totRow - 1})` };
+        totMandaysCell.font = { name: 'Outfit', size: 10, bold: true, color: { argb: '4F46E5' } };
+        totMandaysCell.alignment = { vertical: 'middle', horizontal: 'center' };
+
+        for (let c = 66; c <= 72; c++) {
+          const colLetter = String.fromCharCode(c);
+          const cell = summarySheet.getCell(`${colLetter}${totRow}`);
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'EEF2FF' } };
+          cell.border = {
+            top: { style: 'medium', color: { argb: '4F46E5' } },
+            bottom: { style: 'double', color: { argb: '4F46E5' } },
+            left: { style: 'thin', color: { argb: 'CBD5E1' } },
+            right: { style: 'thin', color: { argb: 'CBD5E1' } }
+          };
+        }
+
+        // Leave spacing for next project
+        baseRow = totRow + 3;
+      });
+
+      // ---------------------------------------------------------
+      // TAB 2: Gantt {Squad Name}
+      // ---------------------------------------------------------
+      const ganttSheetName = `Gantt ${cleanSquadName}`.substring(0, 30);
+      const ganttSheet = workbook.addWorksheet(ganttSheetName);
+
+      // Collect all activity dates across all projects in squad
+      let allActivities = [];
+      squadProjects.forEach(p => {
+        allActivities = allActivities.concat(p.activities || []);
+      });
+
+      let minDate = new Date();
+      let maxDate = addDays(new Date(), 90);
+
+      const validStartDates = allActivities.map(a => a.startDate).filter(Boolean).sort();
+      const validEndDates = allActivities.map(a => a.endDate).filter(Boolean).sort().reverse();
+
+      if (validStartDates.length > 0) minDate = parseISO(validStartDates[0]);
+      if (validEndDates.length > 0) maxDate = parseISO(validEndDates[0]);
+
+      // Range from 1st of minDate month to maxDate + 14 days
+      const calendarStart = new Date(minDate.getFullYear(), minDate.getMonth(), 1);
+      const calendarEnd = addDays(maxDate, 14);
+
+      const daysRange = [];
+      let curr = calendarStart;
+      while (curr <= calendarEnd && daysRange.length < 200) {
+        daysRange.push(curr);
+        curr = addDays(curr, 1);
+      }
+
+      // Column widths
+      ganttSheet.getColumn(1).width = 28; // Activity
+      ganttSheet.getColumn(2).width = 14; // Start Date
+      ganttSheet.getColumn(3).width = 14; // End Date
+      ganttSheet.getColumn(4).width = 10; // Mandays
+      for (let i = 0; i < daysRange.length; i++) {
+        ganttSheet.getColumn(5 + i).width = 3.2;
+      }
+
+      // Headers Row 2, 3, 4
+      ganttSheet.mergeCells('A2:A4');
+      ganttSheet.mergeCells('B2:B4');
+      ganttSheet.mergeCells('C2:C4');
+      ganttSheet.mergeCells('D2:D4');
+
+      ['Activity', 'Start Date', 'End Date', 'Mandays'].forEach((label, idx) => {
+        const letter = String.fromCharCode(65 + idx);
+        const cell = ganttSheet.getCell(`${letter}2`);
+        cell.value = label;
+        cell.font = { name: 'Outfit', size: 10, bold: true, color: { argb: 'FFFFFF' } };
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '334155' } };
+        cell.alignment = { vertical: 'middle', horizontal: 'center' };
+      });
+
+      // Month Headers (Row 2)
+      let currentMonthStr = '';
+      let monthStartCol = 5;
+
+      daysRange.forEach((d, dIdx) => {
+        const mStr = format(d, 'MMMM yyyy');
+        const colIdx = 5 + dIdx;
+
+        if (mStr !== currentMonthStr) {
+          if (currentMonthStr !== '' && colIdx - 1 >= monthStartCol) {
+            // Merge previous month
+            ganttSheet.mergeCells(2, monthStartCol, 2, colIdx - 1);
+            const mCell = ganttSheet.getCell(2, monthStartCol);
+            mCell.value = currentMonthStr;
+            mCell.font = { name: 'Outfit', size: 9, bold: true, color: { argb: 'FFFFFF' } };
+            mCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E293B' } };
+            mCell.alignment = { vertical: 'middle', horizontal: 'center' };
+          }
+          currentMonthStr = mStr;
+          monthStartCol = colIdx;
+        }
+      });
+      // Merge last month
+      if (monthStartCol <= 4 + daysRange.length) {
+        ganttSheet.mergeCells(2, monthStartCol, 2, 4 + daysRange.length);
+        const mCell = ganttSheet.getCell(2, monthStartCol);
+        mCell.value = currentMonthStr;
+        mCell.font = { name: 'Outfit', size: 9, bold: true, color: { argb: 'FFFFFF' } };
+        mCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E293B' } };
+        mCell.alignment = { vertical: 'middle', horizontal: 'center' };
+      }
+
+      // Day Names (Row 3) & Day Numbers (Row 4)
+      daysRange.forEach((d, dIdx) => {
+        const colIdx = 5 + dIdx;
+        const isWknd = !isWorkingDay(d);
+        const bg = isWknd ? 'E2E8F0' : 'F8FAFC';
+        const txtColor = isWknd ? '64748B' : '334155';
+
+        const dayNameCell = ganttSheet.getCell(3, colIdx);
+        dayNameCell.value = format(d, 'EEEEEE'); // 2-letter day (Mo, Tu)
+        dayNameCell.font = { name: 'Outfit', size: 8, color: { argb: txtColor } };
+        dayNameCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        dayNameCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+        const dayNumCell = ganttSheet.getCell(4, colIdx);
+        dayNumCell.value = parseInt(format(d, 'd'));
+        dayNumCell.font = { name: 'Outfit', size: 8, bold: true, color: { argb: txtColor } };
+        dayNumCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: bg } };
+        dayNumCell.alignment = { horizontal: 'center', vertical: 'middle' };
+      });
+
+      ganttSheet.getRow(2).height = 20;
+      ganttSheet.getRow(3).height = 18;
+      ganttSheet.getRow(4).height = 18;
+
+      // Render Gantt Rows for each project
+      let ganttCurrentRow = 5;
+
+      squadProjects.forEach((proj) => {
+        // Project Section Banner in Gantt
+        ganttSheet.getCell(ganttCurrentRow, 1).value = `PROJECT: ${proj.name.toUpperCase()}`;
+        ganttSheet.getCell(ganttCurrentRow, 1).font = { name: 'Outfit', size: 10, bold: true, color: { argb: '4F46E5' } };
+        ganttSheet.getRow(ganttCurrentRow).height = 22;
+        ganttCurrentRow++;
+
+        (proj.activities || []).forEach((act) => {
+          const actRow = ganttCurrentRow;
+          ganttSheet.getCell(actRow, 1).value = act.name;
+          ganttSheet.getCell(actRow, 1).font = { name: 'Outfit', size: 10 };
+
+          ganttSheet.getCell(actRow, 2).value = act.startDate ? format(parseISO(act.startDate), 'dd MMM yyyy') : '-';
+          ganttSheet.getCell(actRow, 2).font = { name: 'Outfit', size: 9 };
+          ganttSheet.getCell(actRow, 2).alignment = { horizontal: 'center' };
+
+          ganttSheet.getCell(actRow, 3).value = act.endDate ? format(parseISO(act.endDate), 'dd MMM yyyy') : '-';
+          ganttSheet.getCell(actRow, 3).font = { name: 'Outfit', size: 9 };
+          ganttSheet.getCell(actRow, 3).alignment = { horizontal: 'center' };
+
+          ganttSheet.getCell(actRow, 4).value = parseInt(act.mandays) || 0;
+          ganttSheet.getCell(actRow, 4).font = { name: 'Outfit', size: 9, bold: true };
+          ganttSheet.getCell(actRow, 4).alignment = { horizontal: 'center' };
+
+          const actStart = act.startDate ? parseISO(act.startDate) : null;
+          const actEnd = act.endDate ? parseISO(act.endDate) : null;
+
+          daysRange.forEach((d, dIdx) => {
+            const colIdx = 5 + dIdx;
+            const cell = ganttSheet.getCell(actRow, colIdx);
+            const isWknd = !isWorkingDay(d);
+
+            if (isWknd) {
+              cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'E2E8F0' } };
+            }
+
+            if (actStart && actEnd && d >= actStart && d <= actEnd) {
+              if (isWorkingDay(d)) {
+                cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '818CF8' } };
+                
+                // Duration label at midpoint
+                const midPoint = Math.floor(differenceInDays(actEnd, actStart) / 2);
+                const currentOffset = differenceInDays(d, actStart);
+                if (currentOffset === midPoint) {
+                  cell.value = `${act.mandays}d`;
+                  cell.font = { name: 'Outfit', size: 8, bold: true, color: { argb: 'FFFFFF' } };
+                  cell.alignment = { horizontal: 'center', vertical: 'middle' };
+                }
+              }
+            }
+          });
+
+          ganttSheet.getRow(actRow).height = 20;
+          ganttCurrentRow++;
+        });
+
+        ganttCurrentRow++; // Blank row spacing
+      });
+    });
+  }
+
+  // -------------------------------------------------------------
+  // WRITE AND DOWNLOAD WORKBOOK
+  // -------------------------------------------------------------
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = `Compiled_Divisi_RKA_${format(new Date(), 'yyyyMMdd_HHmm')}.xlsx`;
+  anchor.click();
+  window.URL.revokeObjectURL(url);
+};
+

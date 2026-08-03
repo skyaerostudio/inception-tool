@@ -14,7 +14,8 @@ import {
   Settings,
   Building2,
   Users,
-  Filter
+  Filter,
+  FileSpreadsheet
 } from 'lucide-react';
 
 export const ProjectSelector = ({
@@ -28,7 +29,8 @@ export const ProjectSelector = ({
   isCloud,
   divisions,
   squads,
-  onOpenOrgManager
+  onOpenOrgManager,
+  onOpenBatchExport
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -265,6 +267,16 @@ export const ProjectSelector = ({
             title={projectsList.length <= 1 ? "Cannot delete the only project" : "Delete Current Project"}
           >
             <Trash2 size={16} />
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon"
+            onClick={onOpenBatchExport}
+            title="Batch Export Summaries (Excel / Google Sheets)"
+          >
+            <FileSpreadsheet size={16} />
+            <span>Batch Export</span>
           </button>
 
           <button

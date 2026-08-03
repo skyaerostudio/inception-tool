@@ -8,6 +8,7 @@ import { Timeline } from './components/Timeline';
 import { HolidayList } from './components/HolidayList';
 import { ActionPanel } from './components/ActionPanel';
 import { OrgManager } from './components/OrgManager';
+import { BatchExportModal } from './components/BatchExportModal';
 import './index.css';
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
   } = useOrgData();
 
   const [isOrgManagerOpen, setIsOrgManagerOpen] = useState(false);
+  const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
 
   useEffect(() => {
     if (projectInfo && projectInfo.name) {
@@ -76,6 +78,7 @@ function App() {
         divisions={divisions}
         squads={squads}
         onOpenOrgManager={() => setIsOrgManagerOpen(true)}
+        onOpenBatchExport={() => setIsBatchExportOpen(true)}
       />
       
       <main className="main-content">
@@ -100,6 +103,7 @@ function App() {
           resetData={resetData} 
           divisions={divisions}
           squads={squads}
+          onOpenBatchExport={() => setIsBatchExportOpen(true)}
         />
 
         <Timeline 
@@ -120,6 +124,16 @@ function App() {
           renameSquad={renameSquad}
           deleteSquad={deleteSquad}
           onClose={() => setIsOrgManagerOpen(false)}
+        />
+      )}
+
+      {isBatchExportOpen && (
+        <BatchExportModal
+          projectsList={projectsList}
+          divisions={divisions}
+          squads={squads}
+          isCloud={isCloud}
+          onClose={() => setIsBatchExportOpen(false)}
         />
       )}
     </div>

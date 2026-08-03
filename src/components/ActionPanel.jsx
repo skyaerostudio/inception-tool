@@ -3,7 +3,7 @@ import { Copy, RotateCcw, Check, Printer, FileSpreadsheet } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { exportProjectToExcel } from '../utils/excelExport';
 
-export const ActionPanel = ({ projectInfo, activities, resetData, divisions, squads }) => {
+export const ActionPanel = ({ projectInfo, activities, resetData, divisions, squads, onOpenBatchExport }) => {
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -45,6 +45,10 @@ export const ActionPanel = ({ projectInfo, activities, resetData, divisions, squ
       <button className="btn btn-secondary" onClick={handleExportExcel} disabled={exporting}>
         <FileSpreadsheet size={18} />
         {exporting ? 'Exporting...' : 'Export Excel'}
+      </button>
+      <button className="btn btn-secondary btn-batch-highlight" onClick={onOpenBatchExport}>
+        <FileSpreadsheet size={18} />
+        Batch Export Summaries
       </button>
       <button className="btn btn-primary" onClick={handleCopy}>
         {copied ? <Check size={18} /> : <Copy size={18} />}
