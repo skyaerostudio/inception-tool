@@ -1,16 +1,22 @@
 import React from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, ShieldCheck, Award } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
 
 export const Header = (props) => (
-  <header className="app-header">
+  <header className="app-header pegadaian-header">
     <div className="header-content">
       <div className="header-title-section">
-        <div className="logo">
-          <Calendar size={28} className="logo-icon" />
-          <h1>Project Schedule Calendar Planner</h1>
+        <div className="pegadaian-brand-badge">
+          <Award size={18} className="pegadaian-badge-icon" />
+          <span>PT PEGADAIAN (PERSERO)</span>
         </div>
-        <p className="subtitle">Plan your project timeline based on mandays, automatically skipping weekends and holidays.</p>
+        <div className="logo">
+          <Calendar size={32} className="logo-icon text-gold" />
+          <h1>Inception & Project Schedule Planner</h1>
+        </div>
+        <p className="subtitle">
+          Official Project Timeline & Resource Allocation System for PT Pegadaian (Mengatasi Masalah Tanpa Masalah)
+        </p>
       </div>
       
       {props.projectsList && (
@@ -19,4 +25,3 @@ export const Header = (props) => (
     </div>
   </header>
 );
-

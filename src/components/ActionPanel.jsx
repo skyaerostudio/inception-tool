@@ -3,7 +3,16 @@ import { Copy, RotateCcw, Check, Printer, FileSpreadsheet } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { exportProjectToExcel } from '../utils/excelExport';
 
-export const ActionPanel = ({ projectInfo, activities, resetData, divisions, squads, onOpenBatchExport }) => {
+export const ActionPanel = ({
+  projectInfo,
+  activities,
+  resetData,
+  divisions,
+  squads,
+  users = [],
+  roles = [],
+  onOpenBatchExport
+}) => {
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -12,7 +21,11 @@ export const ActionPanel = ({ projectInfo, activities, resetData, divisions, squ
     activities.forEach((act, idx) => {
       const start = act.startDate ? format(parseISO(act.startDate), 'dd MMM yyyy') : 'TBD';
       const end = act.endDate ? format(parseISO(act.endDate), 'dd MMM yyyy') : 'TBD';
-      summary += `${idx + 1}. ${act.name}: ${start} - ${end}, ${act.mandays} mandays\n`;
+      const picIds = Array.isArray(act.picIds) && act.picIds.length > 0 ? act.picIds : (act.picId ? [act.picId] : []);
+      const picNames = picIds.map(id => users.find(u => u.id === id)?.name).filter(Boolean);
+      const picStr = picNames.length > 0 ? ` (PIC: ${picNames.join(', ')})` : '';
+      const statusStr = act.status ? ` [${act.status}]` : '';
+      summary += `${idx + 1}. ${act.name}${statusStr}${picStr}: ${start} - ${end}, ${act.mandays} mandays\n`;
     });
 
     navigator.clipboard.writeText(summary);
@@ -23,7 +36,7 @@ export const ActionPanel = ({ projectInfo, activities, resetData, divisions, squ
   const handleExportExcel = async () => {
     setExporting(true);
     try {
-      await exportProjectToExcel(projectInfo, activities, divisions, squads);
+      await exportProjectToExcel(projectInfo, activities, divisions, squads, users, roles);
     } catch (err) {
       console.error('Failed to export to Excel', err);
       alert('Failed to generate Excel file.');

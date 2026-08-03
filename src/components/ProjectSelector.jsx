@@ -15,7 +15,9 @@ import {
   Building2,
   Users,
   Filter,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Activity,
+  UserCheck
 } from 'lucide-react';
 
 export const ProjectSelector = ({
@@ -30,7 +32,9 @@ export const ProjectSelector = ({
   divisions,
   squads,
   onOpenOrgManager,
-  onOpenBatchExport
+  onOpenBatchExport,
+  onOpenUserManager,
+  onOpenAvailabilityModal
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -267,6 +271,27 @@ export const ProjectSelector = ({
             title={projectsList.length <= 1 ? "Cannot delete the only project" : "Delete Current Project"}
           >
             <Trash2 size={16} />
+          </button>
+
+          {/* Dedicated Admin Menus */}
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon highlight-btn"
+            onClick={onOpenAvailabilityModal}
+            title="Resource Availability & Workload Matrix"
+          >
+            <Activity size={16} className="text-primary" />
+            <span>Availability Matrix</span>
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-secondary btn-icon"
+            onClick={onOpenUserManager}
+            title="Manage Users & Job Roles"
+          >
+            <UserCheck size={16} />
+            <span>Users & Roles</span>
           </button>
 
           <button

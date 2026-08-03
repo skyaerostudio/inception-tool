@@ -22,8 +22,66 @@ const getDefaultActivities = () => {
     offset: 0,
     manualStartDate: null,
     actualStartDate: null,
-    actualEndDate: null
+    actualEndDate: null,
+    picId: null,
+    status: 'To Do'
   }));
+};
+
+// Calculation helper for any project info + activity list
+const computeProjectCalculatedActivities = (startDateStr, rawActivities) => {
+  let currentCalculated = [];
+  const projStart = parseISO(startDateStr);
+  const validProjStart = isValid(projStart) ? (isWorkingDay(projStart) ? projStart : getNextWorkingDay(projStart)) : getNextWorkingDay(new Date());
+
+  for (let i = 0; i < rawActivities.length; i++) {
+    const act = rawActivities[i];
+    let calcStart;
+
+    if (i === 0 || act.startMode === 'project_start') {
+      calcStart = validProjStart;
+    } else if (act.startMode === 'manual' && act.manualStartDate) {
+      const parsedManual = parseISO(act.manualStartDate);
+      calcStart = isValid(parsedManual) ? (isWorkingDay(parsedManual) ? parsedManual : getNextWorkingDay(parsedManual)) : validProjStart;
+    } else {
+      const prevAct = currentCalculated[i - 1];
+      if (!prevAct) {
+        calcStart = validProjStart;
+      } else {
+        if (act.startMode === 'after_prev') {
+          calcStart = prevAct.endDate 
+            ? getNextWorkingDay(addDays(parseISO(prevAct.endDate), 1))
+            : parseISO(prevAct.startDate);
+        } else if (act.startMode === 'parallel_prev') {
+          calcStart = parseISO(prevAct.startDate);
+        } else if (act.startMode === 'offset_prev') {
+          let counted = 1;
+          let tempStart = parseISO(prevAct.startDate);
+          const targetOffset = parseInt(act.offset) || 1;
+          
+          while (counted < targetOffset) {
+            tempStart = addDays(tempStart, 1);
+            if (isWorkingDay(tempStart)) {
+              counted++;
+            }
+          }
+          calcStart = tempStart;
+        } else {
+          calcStart = validProjStart;
+        }
+      }
+    }
+
+    const calcEnd = calculateEndDate(calcStart, act.mandays);
+    
+    currentCalculated.push({
+      ...act,
+      startDate: format(calcStart, 'yyyy-MM-dd'),
+      endDate: calcEnd ? format(calcEnd, 'yyyy-MM-dd') : null
+    });
+  }
+
+  return currentCalculated;
 };
 
 export const useProjectManager = () => {
@@ -146,6 +204,8 @@ export const useProjectManager = () => {
                 manualStartDate: a.manual_start_date || null,
                 actualStartDate: a.actual_start_date || null,
                 actualEndDate: a.actual_end_date || null,
+                picId: a.pic_id || null,
+                status: a.status || 'To Do',
                 remarks: a.remarks || ''
               })));
             } else {
@@ -215,6 +275,8 @@ export const useProjectManager = () => {
             manual_start_date: act.manualStartDate || null,
             actual_start_date: act.actualStartDate || null,
             actual_end_date: act.actualEndDate || null,
+            pic_id: act.picId || null,
+            status: act.status || 'To Do',
             remarks: act.remarks || '',
             position_order: index,
             updated_at: new Date().toISOString()
@@ -267,6 +329,8 @@ export const useProjectManager = () => {
           manual_start_date: act.manualStartDate,
           actual_start_date: act.actualStartDate || null,
           actual_end_date: act.actualEndDate || null,
+          pic_id: act.picId || null,
+          status: act.status || 'To Do',
           remarks: act.remarks,
           position_order: index
         }));
@@ -321,6 +385,8 @@ export const useProjectManager = () => {
           manual_start_date: act.manualStartDate,
           actual_start_date: act.actualStartDate || null,
           actual_end_date: act.actualEndDate || null,
+          pic_id: act.picId || null,
+          status: act.status || 'To Do',
           remarks: act.remarks,
           position_order: index
         }));
@@ -379,63 +445,8 @@ export const useProjectManager = () => {
     }
   };
 
-  // Dynamic Date Calculations (identical calculation logic)
-  const getCalculatedActivities = useCallback(() => {
-    let currentCalculated = [];
-    const projStart = parseISO(projectInfo.startDate);
-    const validProjStart = isValid(projStart) ? (isWorkingDay(projStart) ? projStart : getNextWorkingDay(projStart)) : getNextWorkingDay(new Date());
-
-    for (let i = 0; i < activities.length; i++) {
-      const act = activities[i];
-      let calcStart;
-
-      if (i === 0 || act.startMode === 'project_start') {
-        calcStart = validProjStart;
-      } else if (act.startMode === 'manual' && act.manualStartDate) {
-        const parsedManual = parseISO(act.manualStartDate);
-        calcStart = isValid(parsedManual) ? (isWorkingDay(parsedManual) ? parsedManual : getNextWorkingDay(parsedManual)) : validProjStart;
-      } else {
-        const prevAct = currentCalculated[i - 1];
-        if (!prevAct) {
-          calcStart = validProjStart;
-        } else {
-          if (act.startMode === 'after_prev') {
-            calcStart = prevAct.endDate 
-              ? getNextWorkingDay(addDays(parseISO(prevAct.endDate), 1))
-              : parseISO(prevAct.startDate);
-          } else if (act.startMode === 'parallel_prev') {
-            calcStart = parseISO(prevAct.startDate);
-          } else if (act.startMode === 'offset_prev') {
-            let counted = 1;
-            let tempStart = parseISO(prevAct.startDate);
-            const targetOffset = parseInt(act.offset) || 1;
-            
-            while (counted < targetOffset) {
-              tempStart = addDays(tempStart, 1);
-              if (isWorkingDay(tempStart)) {
-                counted++;
-              }
-            }
-            calcStart = tempStart;
-          } else {
-            calcStart = validProjStart;
-          }
-        }
-      }
-
-      const calcEnd = calculateEndDate(calcStart, act.mandays);
-      
-      currentCalculated.push({
-        ...act,
-        startDate: format(calcStart, 'yyyy-MM-dd'),
-        endDate: calcEnd ? format(calcEnd, 'yyyy-MM-dd') : null
-      });
-    }
-
-    return currentCalculated;
-  }, [projectInfo.startDate, activities]);
-
-  const calculatedActivities = getCalculatedActivities();
+  // Dynamic Date Calculations
+  const calculatedActivities = computeProjectCalculatedActivities(projectInfo.startDate, activities);
 
   const addActivity = (name = 'New Activity') => {
     const newActivity = {
@@ -447,6 +458,8 @@ export const useProjectManager = () => {
       manualStartDate: null,
       actualStartDate: null,
       actualEndDate: null,
+      picId: null,
+      status: 'To Do',
       remarks: ''
     };
     setActivities(prev => [...prev, newActivity]);
@@ -480,7 +493,28 @@ export const useProjectManager = () => {
   };
 
   const updateActivity = (id, field, value) => {
-    setActivities(prev => prev.map(act => act.id === id ? { ...act, [field]: value } : act));
+    setActivities(prev => prev.map(act => {
+      if (act.id !== id) return act;
+
+      let updated = { ...act, [field]: value };
+
+      // Smart date auto-fill when status changes
+      if (field === 'status') {
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        if (value === 'In Progress' && !act.actualStartDate) {
+          updated.actualStartDate = todayStr;
+        } else if (value === 'Done') {
+          if (!act.actualStartDate) {
+            updated.actualStartDate = todayStr;
+          }
+          if (!act.actualEndDate) {
+            updated.actualEndDate = todayStr;
+          }
+        }
+      }
+
+      return updated;
+    }));
   };
 
   const reorderActivities = (startIndex, endIndex) => {
@@ -502,6 +536,68 @@ export const useProjectManager = () => {
     setActivities(getDefaultActivities());
   };
 
+  // Helper to load activities across all projects for Availability Matrix
+  const fetchAllProjectsActivities = async () => {
+    if (isCloud) {
+      try {
+        const [projRes, actRes] = await Promise.all([
+          supabase.from('projects').select('id, name, start_date'),
+          supabase.from('activities').select('*').order('position_order', { ascending: true })
+        ]);
+
+        if (projRes.error) throw projRes.error;
+        if (actRes.error) throw actRes.error;
+
+        const projects = projRes.data || [];
+        const allActs = actRes.data || [];
+
+        return projects.map(p => {
+          const rawProjActs = allActs
+            .filter(a => a.project_id === p.id)
+            .map(a => ({
+              id: a.id,
+              name: a.name,
+              mandays: a.mandays,
+              startMode: a.start_mode,
+              offset: a.offset_days || 0,
+              manualStartDate: a.manual_start_date || null,
+              actualStartDate: a.actual_start_date || null,
+              actualEndDate: a.actual_end_date || null,
+              picId: a.pic_id || null,
+              status: a.status || 'To Do',
+              remarks: a.remarks || ''
+            }));
+          const computedActs = computeProjectCalculatedActivities(p.start_date, rawProjActs);
+          return { project: p, activities: computedActs };
+        });
+      } catch (err) {
+        console.error('Error fetching all projects activities:', err);
+        return [];
+      }
+    } else {
+      // LocalStorage mode
+      return projectsList.map(p => {
+        let pInfo = { startDate: format(new Date(), 'yyyy-MM-dd'), name: p.name };
+        let pActs = [];
+
+        if (p.id === currentProjectId) {
+          pInfo = projectInfo;
+          pActs = activities;
+        } else {
+          const raw = localStorage.getItem(getLocalProjectKey(p.id));
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            pInfo = parsed.projectInfo;
+            pActs = parsed.activities || [];
+          }
+        }
+
+        const computedActs = computeProjectCalculatedActivities(pInfo.startDate, pActs);
+        return { project: { id: p.id, name: pInfo.name }, activities: computedActs };
+      });
+    }
+  };
+
   return {
     projectsList,
     currentProjectId,
@@ -517,9 +613,9 @@ export const useProjectManager = () => {
     deleteActivity,
     reorderActivities,
     resetData,
+    fetchAllProjectsActivities,
     isLoading,
     syncStatus,
     isCloud
   };
 };
-

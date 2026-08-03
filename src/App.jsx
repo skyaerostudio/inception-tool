@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useProjectManager } from './hooks/useProjectManager';
 import { useOrgData } from './hooks/useOrgData';
+import { useUserData } from './hooks/useUserData';
 import { Header } from './components/Header';
 import { ProjectInfo } from './components/ProjectInfo';
 import { ActivityTable } from './components/ActivityTable';
@@ -9,6 +10,8 @@ import { HolidayList } from './components/HolidayList';
 import { ActionPanel } from './components/ActionPanel';
 import { OrgManager } from './components/OrgManager';
 import { BatchExportModal } from './components/BatchExportModal';
+import { UserManager } from './components/UserManager';
+import { UserAvailabilityModal } from './components/UserAvailabilityModal';
 import './index.css';
 
 function App() {
@@ -27,6 +30,7 @@ function App() {
     deleteActivity,
     reorderActivities,
     resetData,
+    fetchAllProjectsActivities,
     isLoading,
     syncStatus,
     isCloud
@@ -44,8 +48,22 @@ function App() {
     deleteSquad
   } = useOrgData();
 
+  const {
+    users,
+    roles,
+    isUserLoading,
+    addUser,
+    updateUser,
+    deleteUser,
+    addRole,
+    updateRole,
+    deleteRole
+  } = useUserData();
+
   const [isOrgManagerOpen, setIsOrgManagerOpen] = useState(false);
   const [isBatchExportOpen, setIsBatchExportOpen] = useState(false);
+  const [isUserManagerOpen, setIsUserManagerOpen] = useState(false);
+  const [isAvailabilityModalOpen, setIsAvailabilityModalOpen] = useState(false);
 
   useEffect(() => {
     if (projectInfo && projectInfo.name) {
@@ -55,11 +73,11 @@ function App() {
     }
   }, [projectInfo?.name]);
 
-  if (isLoading || isOrgLoading) {
+  if (isLoading || isOrgLoading || isUserLoading) {
     return (
       <div className="app-loading">
         <div className="spinner"></div>
-        <p>Loading project schedule data...</p>
+        <p>Loading project schedule & team workspace data...</p>
       </div>
     );
   }
@@ -79,6 +97,8 @@ function App() {
         squads={squads}
         onOpenOrgManager={() => setIsOrgManagerOpen(true)}
         onOpenBatchExport={() => setIsBatchExportOpen(true)}
+        onOpenUserManager={() => setIsUserManagerOpen(true)}
+        onOpenAvailabilityModal={() => setIsAvailabilityModalOpen(true)}
       />
       
       <main className="main-content">
@@ -94,7 +114,9 @@ function App() {
           updateActivity={updateActivity} 
           addActivity={addActivity}
           deleteActivity={deleteActivity}
-          reorderActivities={reorderActivities} 
+          reorderActivities={reorderActivities}
+          users={users}
+          roles={roles}
         />
         
         <ActionPanel 
@@ -134,6 +156,29 @@ function App() {
           squads={squads}
           isCloud={isCloud}
           onClose={() => setIsBatchExportOpen(false)}
+        />
+      )}
+
+      {isUserManagerOpen && (
+        <UserManager
+          users={users}
+          roles={roles}
+          addUser={addUser}
+          updateUser={updateUser}
+          deleteUser={deleteUser}
+          addRole={addRole}
+          updateRole={updateRole}
+          deleteRole={deleteRole}
+          onClose={() => setIsUserManagerOpen(false)}
+        />
+      )}
+
+      {isAvailabilityModalOpen && (
+        <UserAvailabilityModal
+          users={users}
+          roles={roles}
+          fetchAllProjectsActivities={fetchAllProjectsActivities}
+          onClose={() => setIsAvailabilityModalOpen(false)}
         />
       )}
     </div>
