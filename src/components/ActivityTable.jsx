@@ -199,6 +199,7 @@ export const ActivityTable = ({
   };
 
   const getPrintPicText = (act) => {
+    if (act.pic && act.pic.trim()) return act.pic.trim();
     const ids = Array.isArray(act.picIds) && act.picIds.length > 0 
       ? act.picIds 
       : (act.picId ? [act.picId] : []);

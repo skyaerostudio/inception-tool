@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthPage } from './components/AuthPage';
 import { useProjectManager } from './hooks/useProjectManager';
 import { useOrgData } from './hooks/useOrgData';
 import { useUserData } from './hooks/useUserData';
@@ -14,7 +16,7 @@ import { UserManager } from './components/UserManager';
 import { UserAvailabilityModal } from './components/UserAvailabilityModal';
 import './index.css';
 
-function App() {
+function MainWorkspace() {
   const {
     projectsList,
     currentProjectId,
@@ -125,6 +127,8 @@ function App() {
           resetData={resetData} 
           divisions={divisions}
           squads={squads}
+          users={users}
+          roles={roles}
           onOpenBatchExport={() => setIsBatchExportOpen(true)}
         />
 
@@ -182,6 +186,33 @@ function App() {
         />
       )}
     </div>
+  );
+}
+
+function ProtectedApp() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="app-loading">
+        <div className="spinner"></div>
+        <p>Authenticating session...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPage />;
+  }
+
+  return <MainWorkspace />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <ProtectedApp />
+    </AuthProvider>
   );
 }
 

@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS public.activities (
     manual_start_date DATE,
     actual_start_date DATE,
     actual_end_date DATE,
+    pic TEXT,
     remarks TEXT,
     position_order INTEGER NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),

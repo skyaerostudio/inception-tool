@@ -163,14 +163,39 @@ export const BatchExportModal = ({
         exportDate: new Date().toISOString(),
         totalProjects: activeSelectedProjects.length,
         totalMandays: summaryMetrics.totalMandays,
-        projects: activeSelectedProjects
+        projects: activeSelectedProjects.map(p => ({
+          id: p.id,
+          name: p.name,
+          divisionName: p.divisionName,
+          squadName: p.squadName,
+          plannedStartDate: p.plannedStartDate,
+          plannedEndDate: p.plannedEndDate,
+          actualStartDate: p.actualStartDate,
+          actualEndDate: p.actualEndDate,
+          totalMandays: p.totalMandays,
+          activityCount: p.activityCount,
+          notes: p.notes,
+          activities: (p.activities || []).map(a => ({
+            name: a.name,
+            mandays: a.mandays,
+            startDate: a.startDate,
+            endDate: a.endDate,
+            actualStartDate: a.actualStartDate,
+            actualEndDate: a.actualEndDate,
+            pic: a.pic || '',
+            remarks: a.remarks || ''
+          }))
+        }))
       };
+
+      const params = new URLSearchParams();
+      params.append('data', JSON.stringify(payload));
 
       await fetch(webhookUrl.trim(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        mode: 'no-cors' // Google Apps Script Web Apps require no-cors or redirect
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString(),
+        mode: 'no-cors'
       });
 
       setWebhookStatus('success');
@@ -181,9 +206,18 @@ export const BatchExportModal = ({
     }
   };
 
+  // Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="modal-backdrop">
-      <div className="modal-content modal-xl batch-export-modal">
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content modal-xl batch-export-modal" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="modal-header">
           <div className="modal-title-group">
@@ -195,7 +229,7 @@ export const BatchExportModal = ({
               <p className="subtitle">Filter, preview, and export inception summaries to Excel or Google Sheets</p>
             </div>
           </div>
-          <button className="btn-icon" onClick={onClose} title="Close">
+          <button className="btn-icon" onClick={onClose} title="Close (Esc)">
             <X size={20} />
           </button>
         </div>
@@ -444,6 +478,9 @@ export const BatchExportModal = ({
               <p className="text-muted text-xs">
                 Paste your deployed Google Apps Script Web App URL to push this dataset directly into a live Google Spreadsheet.
               </p>
+              <div className="webhook-setup-notice" style={{ background: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '6px', padding: '8px 12px', fontSize: '0.78rem', color: '#92400e', marginBottom: '10px' }}>
+                <strong>⚠️ Fix 401 Unauthorized Error:</strong> When deploying your Google Apps Script Web App, set <u>"Execute as"</u> to <strong>Me</strong> and <u>"Who has access"</u> to <strong>Anyone</strong> (Siapa saja). Otherwise Google will block external POST requests.
+              </div>
               <div className="webhook-input-group">
                 <input
                   type="url"

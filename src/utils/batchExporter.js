@@ -119,6 +119,7 @@ export const fetchBatchProjectsData = async (projectsList, isCloud, divisions = 
             manualStartDate: a.manual_start_date || null,
             actualStartDate: a.actual_start_date || null,
             actualEndDate: a.actual_end_date || null,
+            pic: a.pic || '',
             remarks: a.remarks || ''
           }));
         }

@@ -23,7 +23,7 @@ const getDefaultActivities = () => {
     manualStartDate: null,
     actualStartDate: null,
     actualEndDate: null,
-    picId: null,
+    pic: act.pic || '',
     status: 'To Do'
   }));
 };
@@ -204,7 +204,7 @@ export const useProjectManager = () => {
                 manualStartDate: a.manual_start_date || null,
                 actualStartDate: a.actual_start_date || null,
                 actualEndDate: a.actual_end_date || null,
-                picId: a.pic_id || null,
+                pic: a.pic || '',
                 status: a.status || 'To Do',
                 remarks: a.remarks || ''
               })));
@@ -275,7 +275,7 @@ export const useProjectManager = () => {
             manual_start_date: act.manualStartDate || null,
             actual_start_date: act.actualStartDate || null,
             actual_end_date: act.actualEndDate || null,
-            pic_id: act.picId || null,
+            pic: act.pic || '',
             status: act.status || 'To Do',
             remarks: act.remarks || '',
             position_order: index,
@@ -329,7 +329,7 @@ export const useProjectManager = () => {
           manual_start_date: act.manualStartDate,
           actual_start_date: act.actualStartDate || null,
           actual_end_date: act.actualEndDate || null,
-          pic_id: act.picId || null,
+          pic: act.pic || '',
           status: act.status || 'To Do',
           remarks: act.remarks,
           position_order: index
@@ -385,7 +385,7 @@ export const useProjectManager = () => {
           manual_start_date: act.manualStartDate,
           actual_start_date: act.actualStartDate || null,
           actual_end_date: act.actualEndDate || null,
-          pic_id: act.picId || null,
+          pic: act.pic || '',
           status: act.status || 'To Do',
           remarks: act.remarks,
           position_order: index
@@ -458,7 +458,7 @@ export const useProjectManager = () => {
       manualStartDate: null,
       actualStartDate: null,
       actualEndDate: null,
-      picId: null,
+      pic: '',
       status: 'To Do',
       remarks: ''
     };
