@@ -10,12 +10,25 @@ const MultiPicSelector = ({ act, users, roles, updateActivity }) => {
   const dropdownRef = React.useRef(null);
   const searchInputRef = React.useRef(null);
 
-  // Support both array picIds and single string picId (legacy)
+  // Helper to get formatted names for legacy act.pic string
+  const formatPicNames = (ids) => {
+    return ids.map(id => users.find(u => u.id === id)?.name).filter(Boolean).join(', ');
+  };
+
+  // Support array picIds, single string picId, and name-based fallback with act.pic
   const assignedIds = React.useMemo(() => {
     if (Array.isArray(act.picIds) && act.picIds.length > 0) return act.picIds;
     if (act.picId) return [act.picId];
+    
+    // Fallback: match act.pic names against users list
+    if (act.pic && typeof act.pic === 'string' && users.length > 0) {
+      const names = act.pic.split(',').map(n => n.trim().toLowerCase()).filter(Boolean);
+      const matched = users.filter(u => names.includes(u.name.toLowerCase())).map(u => u.id);
+      if (matched.length > 0) return matched;
+    }
+
     return [];
-  }, [act.picIds, act.picId]);
+  }, [act.picIds, act.picId, act.pic, users]);
 
   React.useEffect(() => {
     const handleClickOutside = (event) => {
@@ -43,13 +56,15 @@ const MultiPicSelector = ({ act, users, roles, updateActivity }) => {
       nextIds = [...assignedIds, userId];
     }
     updateActivity(act.id, 'picIds', nextIds);
-    updateActivity(act.id, 'picId', nextIds[0] || null); // backward compatibility
+    updateActivity(act.id, 'picId', nextIds[0] || null);
+    updateActivity(act.id, 'pic', formatPicNames(nextIds));
   };
 
   const clearAll = (e) => {
     e.stopPropagation();
     updateActivity(act.id, 'picIds', []);
     updateActivity(act.id, 'picId', null);
+    updateActivity(act.id, 'pic', '');
   };
 
   const filteredUsers = React.useMemo(() => {

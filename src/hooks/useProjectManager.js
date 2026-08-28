@@ -24,6 +24,8 @@ const getDefaultActivities = () => {
     actualStartDate: null,
     actualEndDate: null,
     pic: act.pic || '',
+    picId: act.picId || null,
+    picIds: act.picIds || [],
     status: 'To Do'
   }));
 };
@@ -195,19 +197,32 @@ export const useProjectManager = () => {
             });
 
             if (acts && acts.length > 0) {
-              setActivities(acts.map(a => ({
-                id: a.id,
-                name: a.name,
-                mandays: a.mandays,
-                startMode: a.start_mode,
-                offset: a.offset_days || 0,
-                manualStartDate: a.manual_start_date || null,
-                actualStartDate: a.actual_start_date || null,
-                actualEndDate: a.actual_end_date || null,
-                pic: a.pic || '',
-                status: a.status || 'To Do',
-                remarks: a.remarks || ''
-              })));
+              setActivities(acts.map(a => {
+                let parsedPicIds = [];
+                if (Array.isArray(a.pic_ids)) {
+                  parsedPicIds = a.pic_ids;
+                } else if (typeof a.pic_ids === 'string') {
+                  try { parsedPicIds = JSON.parse(a.pic_ids); } catch (e) {}
+                }
+                if (parsedPicIds.length === 0 && a.pic_id) {
+                  parsedPicIds = [a.pic_id];
+                }
+                return {
+                  id: a.id,
+                  name: a.name,
+                  mandays: a.mandays,
+                  startMode: a.start_mode,
+                  offset: a.offset_days || 0,
+                  manualStartDate: a.manual_start_date || null,
+                  actualStartDate: a.actual_start_date || null,
+                  actualEndDate: a.actual_end_date || null,
+                  pic: a.pic || '',
+                  picId: a.pic_id || (parsedPicIds[0] || null),
+                  picIds: parsedPicIds,
+                  status: a.status || 'To Do',
+                  remarks: a.remarks || ''
+                };
+              }));
             } else {
               setActivities(getDefaultActivities());
             }
@@ -265,28 +280,44 @@ export const useProjectManager = () => {
           if (projErr) throw projErr;
 
           // Upsert activities
-          const activitiesPayload = activities.map((act, index) => ({
-            id: String(act.id),
-            project_id: currentProjectId,
-            name: act.name,
-            mandays: parseInt(act.mandays) || 1,
-            start_mode: act.startMode || 'after_prev',
-            offset_days: parseInt(act.offset) || 0,
-            manual_start_date: act.manualStartDate || null,
-            actual_start_date: act.actualStartDate || null,
-            actual_end_date: act.actualEndDate || null,
-            pic: act.pic || '',
-            status: act.status || 'To Do',
-            remarks: act.remarks || '',
-            position_order: index,
-            updated_at: new Date().toISOString()
-          }));
+          const activitiesPayload = activities.map((act, index) => {
+            const currentPicIds = Array.isArray(act.picIds) && act.picIds.length > 0 
+              ? act.picIds 
+              : (act.picId ? [act.picId] : []);
+            return {
+              id: String(act.id),
+              project_id: currentProjectId,
+              name: act.name,
+              mandays: parseInt(act.mandays) || 1,
+              start_mode: act.startMode || 'after_prev',
+              offset_days: parseInt(act.offset) || 0,
+              manual_start_date: act.manualStartDate || null,
+              actual_start_date: act.actualStartDate || null,
+              actual_end_date: act.actualEndDate || null,
+              pic: act.pic || '',
+              pic_id: currentPicIds[0] || null,
+              pic_ids: currentPicIds,
+              status: act.status || 'To Do',
+              remarks: act.remarks || '',
+              position_order: index,
+              updated_at: new Date().toISOString()
+            };
+          });
 
-          const { error: actErr } = await supabase
+          let { error: actErr } = await supabase
             .from('activities')
             .upsert(activitiesPayload, { onConflict: 'id,project_id' });
 
-          if (actErr) throw actErr;
+          if (actErr && (actErr.message?.includes('pic_id') || actErr.message?.includes('pic_ids') || actErr.code === 'PGRST204')) {
+            // Fall back without pic_id/pic_ids if migration hasn't been run yet
+            const fallbackPayload = activitiesPayload.map(({ pic_id, pic_ids, ...rest }) => rest);
+            const { error: retryErr } = await supabase
+              .from('activities')
+              .upsert(fallbackPayload, { onConflict: 'id,project_id' });
+            if (retryErr) throw retryErr;
+          } else if (actErr) {
+            throw actErr;
+          }
 
           // Update local list header
           setProjectsList(prev => prev.map(p => p.id === currentProjectId ? { ...p, name: projectInfo.name, division_id: projectInfo.divisionId, squad_id: projectInfo.squadId, updated_at: new Date().toISOString() } : p));
@@ -319,21 +350,28 @@ export const useProjectManager = () => {
 
         if (projErr) throw projErr;
 
-        const actsPayload = defaultActs.map((act, index) => ({
-          id: String(act.id),
-          project_id: proj.id,
-          name: act.name,
-          mandays: act.mandays,
-          start_mode: act.startMode,
-          offset_days: act.offset,
-          manual_start_date: act.manualStartDate,
-          actual_start_date: act.actualStartDate || null,
-          actual_end_date: act.actualEndDate || null,
-          pic: act.pic || '',
-          status: act.status || 'To Do',
-          remarks: act.remarks,
-          position_order: index
-        }));
+        const actsPayload = defaultActs.map((act, index) => {
+          const currentPicIds = Array.isArray(act.picIds) && act.picIds.length > 0 
+            ? act.picIds 
+            : (act.picId ? [act.picId] : []);
+          return {
+            id: String(act.id),
+            project_id: proj.id,
+            name: act.name,
+            mandays: act.mandays,
+            start_mode: act.startMode,
+            offset_days: act.offset,
+            manual_start_date: act.manualStartDate,
+            actual_start_date: act.actualStartDate || null,
+            actual_end_date: act.actualEndDate || null,
+            pic: act.pic || '',
+            pic_id: currentPicIds[0] || null,
+            pic_ids: currentPicIds,
+            status: act.status || 'To Do',
+            remarks: act.remarks,
+            position_order: index
+          };
+        });
 
         const { error: actErr } = await supabase.from('activities').insert(actsPayload);
         if (actErr) throw actErr;
@@ -375,21 +413,28 @@ export const useProjectManager = () => {
 
         if (projErr) throw projErr;
 
-        const actsPayload = (targetActs || getDefaultActivities()).map((act, index) => ({
-          id: String(act.id),
-          project_id: proj.id,
-          name: act.name,
-          mandays: act.mandays,
-          start_mode: act.startMode,
-          offset_days: act.offset,
-          manual_start_date: act.manualStartDate,
-          actual_start_date: act.actualStartDate || null,
-          actual_end_date: act.actualEndDate || null,
-          pic: act.pic || '',
-          status: act.status || 'To Do',
-          remarks: act.remarks,
-          position_order: index
-        }));
+        const actsPayload = (targetActs || getDefaultActivities()).map((act, index) => {
+          const currentPicIds = Array.isArray(act.picIds) && act.picIds.length > 0 
+            ? act.picIds 
+            : (act.picId ? [act.picId] : []);
+          return {
+            id: String(act.id),
+            project_id: proj.id,
+            name: act.name,
+            mandays: act.mandays,
+            start_mode: act.startMode,
+            offset_days: act.offset,
+            manual_start_date: act.manualStartDate,
+            actual_start_date: act.actualStartDate || null,
+            actual_end_date: act.actualEndDate || null,
+            pic: act.pic || '',
+            pic_id: currentPicIds[0] || null,
+            pic_ids: currentPicIds,
+            status: act.status || 'To Do',
+            remarks: act.remarks,
+            position_order: index
+          };
+        });
 
         await supabase.from('activities').insert(actsPayload);
 
@@ -554,19 +599,32 @@ export const useProjectManager = () => {
         return projects.map(p => {
           const rawProjActs = allActs
             .filter(a => a.project_id === p.id)
-            .map(a => ({
-              id: a.id,
-              name: a.name,
-              mandays: a.mandays,
-              startMode: a.start_mode,
-              offset: a.offset_days || 0,
-              manualStartDate: a.manual_start_date || null,
-              actualStartDate: a.actual_start_date || null,
-              actualEndDate: a.actual_end_date || null,
-              picId: a.pic_id || null,
-              status: a.status || 'To Do',
-              remarks: a.remarks || ''
-            }));
+            .map(a => {
+              let parsedPicIds = [];
+              if (Array.isArray(a.pic_ids)) {
+                parsedPicIds = a.pic_ids;
+              } else if (typeof a.pic_ids === 'string') {
+                try { parsedPicIds = JSON.parse(a.pic_ids); } catch (e) {}
+              }
+              if (parsedPicIds.length === 0 && a.pic_id) {
+                parsedPicIds = [a.pic_id];
+              }
+              return {
+                id: a.id,
+                name: a.name,
+                mandays: a.mandays,
+                startMode: a.start_mode,
+                offset: a.offset_days || 0,
+                manualStartDate: a.manual_start_date || null,
+                actualStartDate: a.actual_start_date || null,
+                actualEndDate: a.actual_end_date || null,
+                pic: a.pic || '',
+                picId: a.pic_id || (parsedPicIds[0] || null),
+                picIds: parsedPicIds,
+                status: a.status || 'To Do',
+                remarks: a.remarks || ''
+              };
+            });
           const computedActs = computeProjectCalculatedActivities(p.start_date, rawProjActs);
           return { project: p, activities: computedActs };
         });

@@ -37,7 +37,18 @@ export const UserAvailabilityModal = ({
     // Collect all activities assigned to this user across projects
     projectDataList.forEach(pData => {
       pData.activities.forEach(act => {
-        const isAssigned = (Array.isArray(act.picIds) && act.picIds.includes(user.id)) || (act.picId === user.id);
+        const assignedIds = Array.isArray(act.picIds) && act.picIds.length > 0
+          ? act.picIds
+          : (act.picId ? [act.picId] : []);
+        
+        let isAssigned = assignedIds.includes(user.id);
+
+        // Fallback: match by user name if act.pic string exists
+        if (!isAssigned && act.pic && typeof act.pic === 'string') {
+          const names = act.pic.split(',').map(n => n.trim().toLowerCase()).filter(Boolean);
+          isAssigned = names.includes(user.name.toLowerCase());
+        }
+
         if (isAssigned) {
           assignedActivities.push({
             ...act,
